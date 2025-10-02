@@ -1,0 +1,42 @@
+/* Basic utility classes */
+.flex {
+    display: flex;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.p-4 {
+    padding: 1rem;
+}
+
+.m-4 {
+    margin: 1rem;
+}
+
+.rounded {
+    border-radius: 0.25rem;
+}
+
+.bg-blue-500 {
+    background-color: #3b82f6;
+}
+
+.text-white {
+    color: white;
+}
+
+.font-bold {
+    font-weight: bold;
+}
+
+.hover\:bg-blue-700:hover {
+    background-color: #1d4ed8;
+}
+
+/* Add more utility classes as needed */
