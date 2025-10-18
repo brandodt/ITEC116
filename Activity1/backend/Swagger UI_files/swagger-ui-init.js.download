@@ -1,0 +1,280 @@
+
+window.onload = function() {
+  // Build a system
+  let url = window.location.search.match(/url=([^&]+)/);
+  if (url && url.length > 1) {
+    url = decodeURIComponent(url[1]);
+  } else {
+    url = window.location.origin;
+  }
+  let options = {
+  "swaggerDoc": {
+    "openapi": "3.0.0",
+    "paths": {
+      "/tasks": {
+        "post": {
+          "operationId": "TasksController_create",
+          "parameters": [],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTaskDto"
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Task created successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input data"
+            }
+          },
+          "summary": "Create a new task",
+          "tags": [
+            "tasks"
+          ]
+        },
+        "get": {
+          "operationId": "TasksController_findAll",
+          "parameters": [],
+          "responses": {
+            "200": {
+              "description": "List of all tasks",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Task"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "summary": "Get all tasks",
+          "tags": [
+            "tasks"
+          ]
+        }
+      },
+      "/tasks/{id}": {
+        "get": {
+          "operationId": "TasksController_findOne",
+          "parameters": [
+            {
+              "name": "id",
+              "required": true,
+              "in": "path",
+              "description": "Task ID (MongoDB ObjectId)",
+              "schema": {
+                "example": "507f1f77bcf86cd799439011",
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Task found",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Task not found"
+            }
+          },
+          "summary": "Get a task by ID",
+          "tags": [
+            "tasks"
+          ]
+        },
+        "put": {
+          "operationId": "TasksController_update",
+          "parameters": [
+            {
+              "name": "id",
+              "required": true,
+              "in": "path",
+              "description": "Task ID (MongoDB ObjectId)",
+              "schema": {
+                "example": "507f1f77bcf86cd799439011",
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateTaskDto"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Task updated successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input data"
+            },
+            "404": {
+              "description": "Task not found"
+            }
+          },
+          "summary": "Update a task",
+          "tags": [
+            "tasks"
+          ]
+        },
+        "delete": {
+          "operationId": "TasksController_remove",
+          "parameters": [
+            {
+              "name": "id",
+              "required": true,
+              "in": "path",
+              "description": "Task ID (MongoDB ObjectId)",
+              "schema": {
+                "example": "507f1f77bcf86cd799439011",
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "Task deleted successfully"
+            },
+            "404": {
+              "description": "Task not found"
+            }
+          },
+          "summary": "Delete a task",
+          "tags": [
+            "tasks"
+          ]
+        }
+      }
+    },
+    "info": {
+      "title": "Task Manager API",
+      "description": "API documentation for the Task Manager application",
+      "version": "1.0.0",
+      "contact": {}
+    },
+    "tags": [
+      {
+        "name": "tasks",
+        "description": "Task management endpoints"
+      }
+    ],
+    "servers": [],
+    "components": {
+      "schemas": {
+        "CreateTaskDto": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "The title of the task",
+              "example": "Complete project documentation",
+              "maxLength": 100
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of the task",
+              "example": "Write comprehensive API documentation for all endpoints"
+            }
+          },
+          "required": [
+            "title"
+          ]
+        },
+        "Task": {
+          "type": "object",
+          "properties": {}
+        },
+        "UpdateTaskDto": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "The title of the task",
+              "example": "Complete project documentation",
+              "maxLength": 100
+            },
+            "description": {
+              "type": "string",
+              "description": "Description of the task",
+              "example": "Write comprehensive API documentation for all endpoints"
+            },
+            "completed": {
+              "type": "boolean",
+              "description": "Whether the task is completed",
+              "example": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "customOptions": {}
+};
+  url = options.swaggerUrl || url
+  let urls = options.swaggerUrls
+  let customOptions = options.customOptions
+  let spec1 = options.swaggerDoc
+  let swaggerOptions = {
+    spec: spec1,
+    url: url,
+    urls: urls,
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    presets: [
+      SwaggerUIBundle.presets.apis,
+      SwaggerUIStandalonePreset
+    ],
+    plugins: [
+      SwaggerUIBundle.plugins.DownloadUrl
+    ],
+    layout: "StandaloneLayout"
+  }
+  for (let attrname in customOptions) {
+    swaggerOptions[attrname] = customOptions[attrname];
+  }
+  let ui = SwaggerUIBundle(swaggerOptions)
+
+  if (customOptions.initOAuth) {
+    ui.initOAuth(customOptions.initOAuth)
+  }
+
+  if (customOptions.authAction) {
+    ui.authActions.authorize(customOptions.authAction)
+  }
+  
+  window.ui = ui
+}

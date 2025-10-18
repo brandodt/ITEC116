@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
@@ -11,6 +12,17 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     app.enableCors(); // Enable CORS for frontend connection
     app.useGlobalPipes(new ValidationPipe());
+
+    // Setup Swagger documentation
+    const config = new DocumentBuilder()
+        .setTitle('Task Manager API')
+        .setDescription('API documentation for the Task Manager application')
+        .setVersion('1.0.0')
+        .addTag('tasks', 'Task management endpoints')
+        .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
 
     // Verify MongoDB connection and list collections
     try {
@@ -41,5 +53,6 @@ async function bootstrap() {
 
     await app.listen(3001);
     console.log(`Application is running on: http://localhost:3001`);
+    console.log(`API documentation available at: http://localhost:3001/api`);
 }
 bootstrap();
