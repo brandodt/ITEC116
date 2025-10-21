@@ -1,104 +1,109 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Book, Calendar, User } from "react-feather";
 import SidePane from "../components/SidePane";
+import {
+  getAllBooks,
+  getAllAuthors,
+  getAllCategories,
+  clearLastError,
+  getLastError,
+  BASE_URL,
+} from "../data/Api";
+import FormDrawer from "../components/FormDrawer";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const BooksView = () => {
   const [selectedBook, setSelectedBook] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortCriteria, setSortCriteria] = useState("name");
+  const [books, setBooks] = useState([]);
+  const [authors, setAuthors] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingBook, setEditingBook] = useState(null);
 
-  // Mock data for books
-  const mockBooks = useMemo(
-    () => [
-      {
-        id: 1,
-        title: "The Silent Echo",
-        authorName: "Elena Morrison",
-        publicationYear: 2023,
-        categories: ["Mystery", "Thriller"],
-        summary:
-          "A psychological thriller that follows detective Sarah Lane as she investigates a series of disappearances in a small coastal town. As she uncovers the truth, she realizes the cases are connected to her own past.",
-      },
-      {
-        id: 2,
-        title: "Whispers of Eternity",
-        authorName: "Marcus Chen",
-        publicationYear: 2022,
-        categories: ["Fantasy", "Adventure"],
-        summary:
-          "In a world where time is a currency, young Elara discovers she can manipulate the flow of time. As she masters her abilities, she becomes entangled in a war between immortal beings.",
-      },
-      {
-        id: 3,
-        title: "Quantum Paradox",
-        authorName: "Dr. Richard Hayes",
-        publicationYear: 2024,
-        categories: ["Science Fiction", "Mystery"],
-        summary:
-          "When physicist Dr. Emma Carter creates a machine that can glimpse alternate realities, she witnesses versions of herself making dangerous choices. Soon, the boundaries between realities begin to collapse.",
-      },
-      {
-        id: 4,
-        title: "The Last Horizon",
-        authorName: "Marcus Chen",
-        publicationYear: 2021,
-        categories: ["Adventure", "Drama"],
-        summary:
-          "After a global catastrophe, survivors navigate a changed world. Among them is Leo, who embarks on a journey across the wasteland in search of a rumored safe haven.",
-      },
-      {
-        id: 5,
-        title: "Midnight Gardens",
-        authorName: "Sophia Williams",
-        publicationYear: 2020,
-        categories: ["Romance", "Fantasy"],
-        summary:
-          "When Isabella inherits her grandmother's Victorian mansion, she discovers a garden that only appears at midnight. Inside, she meets a mysterious guardian bound to the grounds for centuries.",
-      },
-      {
-        id: 6,
-        title: "Code of Shadows",
-        authorName: "Elena Morrison",
-        publicationYear: 2023,
-        categories: ["Thriller", "Techno-thriller"],
-        summary:
-          "Cybersecurity expert Maya Reyes uncovers a conspiracy involving a dangerous AI system designed to manipulate global events. As she digs deeper, she becomes the target of the very system she's trying to expose.",
-      },
-    ],
-    []
-  );
+  // Helper: attach local cover fallbacks (if backend didn't persist coverUrl)
+  const attachCovers = (list) => {
+    const map = JSON.parse(localStorage.getItem("bookCovers") || "{}");
+    return list.map((bk) => {
+      const id = bk?._id || bk?.id;
+      const cover = bk?.coverUrl || map[id];
+      return cover ? { ...bk, coverUrl: cover } : bk;
+    });
+  };
+
+  // Fetch data
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setIsLoading(true);
+      clearLastError();
+      const [b, a, c] = await Promise.all([
+        getAllBooks(),
+        getAllAuthors(),
+        getAllCategories(),
+      ]);
+      if (!mounted) return;
+      const withCovers = attachCovers(b);
+      setBooks(withCovers);
+      setAuthors(a);
+      setCategories(c);
+      setFetchError(getLastError());
+      // Keep selected reference in sync with updated objects
+      if (selectedBook) {
+        const selId = selectedBook._id || selectedBook.id;
+        const nextSel =
+          withCovers.find((x) => (x._id || x.id) === selId) || null;
+        setSelectedBook(nextSel);
+      }
+      setIsLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter and sort books based on search query and sort criteria
   const filteredAndSortedBooks = useMemo(() => {
-    let filteredBooks = [...mockBooks];
+    // Exclude archived books if backend returns them
+    let filteredBooks = [...books].filter(
+      (b) => !b?.archived && !b?.isArchived && b?.status !== "archived"
+    );
 
-    // Filter by search query if present
+    // Filter by search query if present (title, author.name, categories[].name)
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filteredBooks = filteredBooks.filter(
-        (book) =>
-          book.title.toLowerCase().includes(query) ||
-          book.authorName.toLowerCase().includes(query) ||
-          book.categories.some((cat) => cat.toLowerCase().includes(query))
-      );
+      filteredBooks = filteredBooks.filter((book) => {
+        const title = (book?.title || "").toLowerCase();
+        const author = (book?.author?.name || "").toLowerCase();
+        const catHit = Array.isArray(book?.categories)
+          ? book.categories.some((cat) =>
+              (cat?.name || "").toLowerCase().includes(query)
+            )
+          : false;
+        return title.includes(query) || author.includes(query) || catHit;
+      });
     }
 
-    // Sort based on criteria
+    // Sort based on criteria (name, author.name, publicationYear)
     filteredBooks.sort((a, b) => {
       switch (sortCriteria) {
         case "name":
-          return a.title.localeCompare(b.title);
+          return (a?.title || "").localeCompare(b?.title || "");
         case "author":
-          return a.authorName.localeCompare(b.authorName);
+          return (a?.author?.name || "").localeCompare(b?.author?.name || "");
         case "year":
-          return b.publicationYear - a.publicationYear;
+          return (b?.publicationYear || 0) - (a?.publicationYear || 0);
         default:
           return 0;
       }
     });
 
     return filteredBooks;
-  }, [mockBooks, searchQuery, sortCriteria]);
+  }, [books, searchQuery, sortCriteria]);
 
   // Update search query from navigation
   useEffect(() => {
@@ -113,12 +118,170 @@ const BooksView = () => {
     }
   }, []);
 
+  const handleAddBook = async () => {
+    const title = window.prompt("Enter book title:");
+    if (!title) return;
+
+    // Try to map optional author and categories from existing lists
+    const authorName = window.prompt(
+      "Enter author name (optional, must match existing):"
+    );
+    let authorId = null;
+    if (authorName) {
+      const match = authors.find(
+        (a) => (a?.name || "").toLowerCase() === authorName.trim().toLowerCase()
+      );
+      authorId = match?._id || match?.id || null;
+    }
+
+    const catsInput = window.prompt(
+      "Enter categories (optional, comma-separated, must match existing):"
+    );
+    let categoryIds = [];
+    if (catsInput) {
+      const wanted = catsInput
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      categoryIds = categories
+        .filter((c) => wanted.includes((c?.name || "").toLowerCase()))
+        .map((c) => c._id || c.id);
+    }
+
+    const payload = { title };
+    if (authorId) payload.author = authorId;
+    if (categoryIds.length) payload.categories = categoryIds;
+
+    try {
+      const res = await fetch(`${BASE_URL}/books`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      window.alert("Failed to add book. Please try again.");
+      return;
+    }
+
+    // Refresh data
+    clearLastError();
+    const [b, a, c] = await Promise.all([
+      getAllBooks(),
+      getAllAuthors(),
+      getAllCategories(),
+    ]);
+    const withCovers = attachCovers(b);
+    setBooks(withCovers);
+    setAuthors(a);
+    setCategories(c);
+    setFetchError(getLastError());
+  };
+
+  // Toast-based confirm dialog (returns Promise<boolean>)
+  const confirmArchiveToast = (bookTitle) =>
+    new Promise((resolve) => {
+      toast(
+        ({ closeToast }) => (
+          <div className="text-lg">
+            <div className="mb-3 text-gray-200">Delete “{bookTitle}”?</div>
+            <div className="flex gap-2">
+              <button
+                className="px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700"
+                onClick={() => {
+                  resolve(true);
+                  closeToast();
+                }}
+              >
+                Archive
+              </button>
+              <button
+                className="px-3 py-1.5 rounded bg-[#242424] text-gray-200 hover:bg-[#2c2c2c]"
+                onClick={() => {
+                  resolve(false);
+                  closeToast();
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ),
+        {
+          autoClose: false,
+          closeOnClick: false,
+          draggable: false,
+          theme: "dark",
+        }
+      );
+    });
+
+  // Archive (soft delete) instead of hard delete
+  const handleDeleteBook = async (book) => {
+    if (!book) return;
+    const id = book._id || book.id;
+    if (!id) return;
+
+    const confirmed = await confirmArchiveToast(book.title || "this book");
+    if (!confirmed) return;
+
+    try {
+      // 1) Preferred archive endpoint
+      let res = await fetch(`${BASE_URL}/books/${id}/archive`, {
+        method: "POST",
+      });
+      // 2) Fallbacks
+      if (!res.ok) {
+        res = await fetch(`${BASE_URL}/books/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ archived: true }),
+        });
+      }
+      if (!res.ok) {
+        res = await fetch(`${BASE_URL}/books/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isArchived: true }),
+        });
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      setBooks((prev) =>
+        prev.map((b) => ((b._id || b.id) === id ? { ...b, archived: true } : b))
+      );
+      if ((selectedBook?._id || selectedBook?.id) === id) setSelectedBook(null);
+
+      toast.success("Book archived.");
+    } catch {
+      toast.error("Failed to archive book.");
+    }
+  };
+
+  // Open edit drawer instead of prompts
+  const handleEditBook = (book) => {
+    setEditingBook(book);
+    setIsDrawerOpen(true);
+  };
+
+  // Update selected book when books change
+  useEffect(() => {
+    if (!selectedBook) return;
+    const id = selectedBook._id || selectedBook.id;
+    const updated = books.find((b) => (b._id || b.id) === id) || null;
+    setSelectedBook(updated);
+  }, [books]);
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex flex-col md:flex-row gap-6">
         {/* Side pane */}
         <div className="w-full md:w-1/4">
-          <SidePane book={selectedBook} />
+          <SidePane
+            book={selectedBook}
+            onEdit={() => handleEditBook(selectedBook)}
+            onDelete={() => handleDeleteBook(selectedBook)}
+          />
         </div>
 
         {/* Main content area */}
@@ -145,89 +308,106 @@ const BooksView = () => {
                 </select>
               </div>
 
-              <button className="bg-[#00a2ff] text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap">
+              <button
+                className="bg-[#00a2ff] text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+                onClick={() => {
+                  setEditingBook(null); // create mode
+                  setIsDrawerOpen(true);
+                }}
+              >
                 Add New Book
               </button>
             </div>
           </div>
 
-          {filteredAndSortedBooks.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredAndSortedBooks.map((book) => (
-                <div
-                  key={book.id}
-                  className={`bg-dark-secondary p-4 rounded-lg border cursor-pointer transition-colors ${
-                    selectedBook && selectedBook.id === book.id
-                      ? "border-[#00a2ff] ring-2 ring-[#00a2ff] ring-opacity-30"
-                      : "border-dark-border hover:border-[#00a2ff]"
-                  }`}
-                  onClick={() => setSelectedBook(book)}
-                >
-                  {/* Book Cover Placeholder */}
-                  <div className="aspect-[3/4] bg-dark-input rounded-lg mb-4 flex items-center justify-center">
-                    <Book className="text-gray-400" size={48} />
-                  </div>
-
-                  <h3
-                    className="text-lg font-bold text-dark-text mb-1 truncate"
-                    title={book.title}
-                  >
-                    {book.title}
-                  </h3>
-                  <div className="flex items-center text-gray-400 mb-2">
-                    <User size={14} className="mr-1 flex-shrink-0" />
-                    <span className="text-sm truncate" title={book.authorName}>
-                      {book.authorName}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-gray-400 mb-3">
-                    <Calendar size={14} className="mr-1 flex-shrink-0" />
-                    <span className="text-sm">{book.publicationYear}</span>
-                  </div>
-
-                  {/* Categories */}
-                  <div className="flex flex-wrap gap-1">
-                    {book.categories.slice(0, 2).map((category, index) => (
-                      <span
-                        key={index}
-                        className="bg-[#00a2ff] bg-opacity-20 text-[#00a2ff] px-2 py-1 rounded text-xs"
-                        title={category}
-                      >
-                        {category}
-                      </span>
-                    ))}
-                    {book.categories.length > 2 && (
-                      <span className="text-gray-400 text-xs px-2 py-1">
-                        +{book.categories.length - 2} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+          {isLoading ? (
+            <div className="text-gray-400">Loading...</div>
+          ) : fetchError ? (
+            <div className="text-red-400">
+              Connection error. Please try again.
             </div>
+          ) : books.length === 0 ? (
+            <div className="text-gray-400">No books found.</div>
           ) : (
-            <div className="bg-dark-secondary rounded-lg p-8 text-center">
-              <Book
-                size={48}
-                className="text-gray-400 mx-auto mb-4 opacity-60"
-              />
-              <p className="text-gray-400 text-lg mb-2">
-                No books found matching your search criteria
-              </p>
-              <p className="text-gray-500 text-sm">
-                Try adjusting your search terms or clearing the search to see
-                all books
-              </p>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="mt-4 text-[#00a2ff] hover:text-blue-400 transition-colors"
-                >
-                  Clear search
-                </button>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredAndSortedBooks.map((book) => {
+                const id = book.id || book._id;
+                const isSelected =
+                  (selectedBook?._id || selectedBook?.id) === id;
+                const authorName = book?.author?.name || "Unknown Author";
+                const categoryNames = Array.isArray(book?.categories)
+                  ? book.categories
+                      .map((c) => c?.name)
+                      .filter(Boolean)
+                      .join(", ")
+                  : "Uncategorized";
+                return (
+                  <div
+                    key={id}
+                    className={`bg-dark-secondary p-6 rounded-lg border transition-colors ${
+                      isSelected
+                        ? "border-[#00a2ff]"
+                        : "border-dark-border hover:border-[#00a2ff]"
+                    }`}
+                    onClick={() => setSelectedBook(book)}
+                  >
+                    {/* Book Cover Placeholder */}
+                    <div className="aspect-[3/4] bg-dark-input rounded-lg mb-4 flex items-center justify-center">
+                      {book?.coverUrl ? (
+                        <img
+                          src={book.coverUrl}
+                          alt={book?.title || "Book cover"}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <Book className="text-gray-400" size={48} />
+                      )}
+                    </div>
+
+                    <h3 className="text-xl font-bold text-dark-text mb-2">
+                      {book?.title || "Untitled"}
+                    </h3>
+                    <p className="text-gray-400">
+                      <span>{authorName}</span>
+                      {" • "}
+                      <span>{categoryNames || "Uncategorized"}</span>
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           )}
+
+          {/* Drawer */}
+          <FormDrawer
+            isOpen={isDrawerOpen}
+            onClose={() => setIsDrawerOpen(false)}
+            mode="book"
+            // Pass edit mode + initial book to prefill the form
+            formMode={editingBook ? "edit" : "create"}
+            initialBook={editingBook}
+            authors={authors}
+            categories={categories}
+            onCreated={async () => {
+              clearLastError();
+              const [b, a, c] = await Promise.all([
+                getAllBooks(),
+                getAllAuthors(),
+                getAllCategories(),
+              ]);
+              const withCovers = attachCovers(b);
+              setBooks(withCovers);
+              setAuthors(a);
+              setCategories(c);
+              setFetchError(getLastError());
+              setIsDrawerOpen(false);
+              toast.success(editingBook ? "Book updated." : "Book created.");
+              setEditingBook(null);
+            }}
+          />
+
+          {/* Toasts */}
+          <ToastContainer position="top-center" theme="dark" />
         </div>
       </div>
     </div>
