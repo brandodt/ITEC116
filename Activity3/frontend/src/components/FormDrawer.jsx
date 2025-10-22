@@ -3,12 +3,8 @@ import { X } from "react-feather";
 import BookForm from "./forms/BookForm";
 import AuthorForm from "./forms/AuthorForm";
 import CategoryForm from "./forms/CategoryForm";
-
-const titles = {
-  book: "Add New Book",
-  author: "Add New Author",
-  category: "Add New Category",
-};
+import { BASE_URL } from "../data/Api"; // added
+import { toast } from "react-toastify"; // added
 
 const FormDrawer = ({
   isOpen,
@@ -48,6 +44,44 @@ const FormDrawer = ({
       : "Add New Category"
     : "Add New";
 
+  // Toast-based confirm dialog (returns Promise<boolean>)
+  const confirmRemoveToast = (label) =>
+    new Promise((resolve) => {
+      toast(
+        ({ closeToast }) => (
+          <div className="text-sm">
+            <div className="mb-3 text-gray-200">Remove “{label}”?</div>
+            <div className="flex gap-2">
+              <button
+                className="px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700"
+                onClick={() => {
+                  resolve(true);
+                  closeToast();
+                }}
+              >
+                Remove
+              </button>
+              <button
+                className="px-3 py-1.5 rounded bg-[#242424] text-gray-200 hover:bg-[#2c2c2c]"
+                onClick={() => {
+                  resolve(false);
+                  closeToast();
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ),
+        {
+          autoClose: false,
+          closeOnClick: false,
+          draggable: false,
+          theme: "dark",
+        }
+      );
+    });
+
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -74,21 +108,80 @@ const FormDrawer = ({
               initialBook={initialBook}
             />
           )}
+
           {isAuthor && (
-            <AuthorForm
-              onCancel={onClose}
-              onSubmitSuccess={onCreated}
-              isEdit={isEdit}
-              initialAuthor={initialAuthor}
-            />
+            <>
+              <AuthorForm
+                onCancel={onClose}
+                onSubmitSuccess={onCreated}
+                isEdit={isEdit}
+                initialAuthor={initialAuthor}
+              />
+              {isEdit && initialAuthor && (
+                <div className="mt-6 pt-4 border-t border-dark-border">
+                  <button
+                    type="button"
+                    className="w-full px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                    onClick={async () => {
+                      const label = initialAuthor?.name || "this author";
+                      const ok = await confirmRemoveToast(label);
+                      if (!ok) return;
+                      try {
+                        const id = initialAuthor._id || initialAuthor.id;
+                        const res = await fetch(`${BASE_URL}/authors/${id}`, {
+                          method: "DELETE",
+                        });
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        onClose?.();
+                        onCreated?.();
+                      } catch {
+                        toast.error("Failed to remove author.");
+                      }
+                    }}
+                  >
+                    Remove Author
+                  </button>
+                </div>
+              )}
+            </>
           )}
+
           {isCategory && (
-            <CategoryForm
-              onCancel={onClose}
-              onSubmitSuccess={onCreated}
-              isEdit={isEdit}
-              initialCategory={initialCategory}
-            />
+            <>
+              <CategoryForm
+                onCancel={onClose}
+                onSubmitSuccess={onCreated}
+                isEdit={isEdit}
+                initialCategory={initialCategory}
+              />
+              {isEdit && initialCategory && (
+                <div className="mt-6 pt-4 border-t border-dark-border">
+                  <button
+                    type="button"
+                    className="w-full px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                    onClick={async () => {
+                      const label = initialCategory?.name || "this category";
+                      const ok = await confirmRemoveToast(label);
+                      if (!ok) return;
+                      try {
+                        const id = initialCategory._id || initialCategory.id;
+                        const res = await fetch(
+                          `${BASE_URL}/categories/${id}`,
+                          { method: "DELETE" }
+                        );
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        onClose?.();
+                        onCreated?.();
+                      } catch {
+                        toast.error("Failed to remove category.");
+                      }
+                    }}
+                  >
+                    Remove Category
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

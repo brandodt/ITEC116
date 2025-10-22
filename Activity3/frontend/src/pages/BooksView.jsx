@@ -276,7 +276,7 @@ const BooksView = () => {
     <div className="container mx-auto py-6">
       <div className="flex flex-col md:flex-row gap-6">
         {/* Side pane */}
-        <div className="w-full md:w-1/4">
+        <div className="w-full md:w-1/4 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-auto">
           <SidePane
             book={selectedBook}
             onEdit={() => handleEditBook(selectedBook)}
@@ -329,7 +329,7 @@ const BooksView = () => {
           ) : books.length === 0 ? (
             <div className="text-gray-400">No books found.</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
               {filteredAndSortedBooks.map((book) => {
                 const id = book.id || book._id;
                 const isSelected =

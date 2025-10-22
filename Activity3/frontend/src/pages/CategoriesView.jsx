@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Tag, Book } from "react-feather";
+import { Tag, Book, Edit } from "react-feather";
 import {
   getAllCategories,
   getAllBooks, // added
@@ -108,11 +108,16 @@ const CategoriesView = () => {
               <div
                 key={category.id || category._id}
                 className="bg-dark-secondary p-6 rounded-lg border border-dark-border hover:border-[#00a2ff] transition-colors"
-                onClick={() => {
-                  setEditingCategory(category);
-                  setIsDrawerOpen(true);
-                }}
               >
+                <div className="relative">
+                  <Edit
+                    onClick={() => {
+                      setEditingCategory(category);
+                      setIsDrawerOpen(true);
+                    }}
+                    className="absolute right-0 cursor-pointer text-[#00a2ff]"
+                  />
+                </div>
                 <h3 className="text-xl font-bold text-dark-text mb-2">
                   {category?.name || "Unnamed Category"}
                 </h3>

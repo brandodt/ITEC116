@@ -6,7 +6,7 @@ import {
   getLastError,
   BASE_URL,
 } from "../data/Api";
-import { Users, Book } from "react-feather";
+import { Users, Book, Edit } from "react-feather";
 import FormDrawer from "../components/FormDrawer";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -109,11 +109,16 @@ const AuthorsView = () => {
               <div
                 key={author.id || author._id}
                 className="bg-dark-secondary p-6 rounded-lg border border-dark-border hover:border-[#00a2ff] transition-colors"
-                onClick={() => {
-                  setEditingAuthor(author);
-                  setIsDrawerOpen(true);
-                }}
               >
+                <div className="relative">
+                  <Edit
+                    className="absolute right-0 cursor-pointer text-[#00a2ff]"
+                    onClick={() => {
+                      setEditingAuthor(author);
+                      setIsDrawerOpen(true);
+                    }}
+                  />
+                </div>
                 <h3 className="text-xl font-bold text-dark-text mb-2">
                   {author?.name || "Unnamed Author"}
                 </h3>
