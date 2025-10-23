@@ -1,3 +1,20 @@
+/* Custom scrollbar for HourlyForecast scroll area */
+.hourly-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  background: #222;
+  border-radius: 8px;
+}
+.hourly-scrollbar::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 8px;
+}
+.hourly-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00a2ff;
+}
+.hourly-scrollbar {
+  scrollbar-color: #333 #222;
+  scrollbar-width: thin;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
