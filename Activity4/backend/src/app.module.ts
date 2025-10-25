@@ -1,15 +1,21 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { AppService } from './app.service'; // Add this import back
 import { ItemModule } from './item/item.module';
+import { WeatherService } from './weather.service';
+import { WeatherController } from './weather.controller';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost:27017/activitydb'), // Use your MongoDB URI
+    MongooseModule.forRoot(
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/weatherdb'
+    ),
+    HttpModule,
     ItemModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, WeatherController],
+  providers: [AppService, WeatherService],
 })
 export class AppModule {}
