@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { postsAPI, commentsAPI } from '../utils/api';
 import type { Post, Comment } from '../types';
@@ -11,6 +11,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import EditPostModal from '../components/EditPostModal';
 import ConfirmModal from '../components/ConfirmModal';
+import { ArrowLeft } from 'react-feather';
+
 
 const PostDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -173,6 +175,12 @@ const PostDetailPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#0a0a0a]">
             <Navbar />
+            <div className='mx-auto px-6 pt-4 max-w-4xl'>
+                <div className='mt-4 p-2 border-primary border-2 nowrap rounded-lg w-28 cursor-pointer hover:bg-primary/10 transition-colors' onClick={() => navigate(-1)}>
+                    <ArrowLeft size={16} className='text-primary inline-block mr-5' />
+                    <span className="font-bold text-primary">Back</span>
+                </div>
+            </div>
 
             <div className="container mx-auto px-6 py-12 max-w-4xl">
                 {/* Post Content */}

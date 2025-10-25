@@ -26,7 +26,13 @@ export class NotesService {
         if (!note) {
             throw new NotFoundException('Note not found');
         }
-        if (note.userId !== userId) {
+
+        // Temporary debug logging
+        console.log('Note userId:', note.userId, typeof note.userId);
+        console.log('Request userId:', userId, typeof userId);
+        console.log('Match:', note.userId.toString() === userId.toString());
+
+        if (note.userId.toString() !== userId.toString()) {
             throw new ForbiddenException('Access denied');
         }
         return note;

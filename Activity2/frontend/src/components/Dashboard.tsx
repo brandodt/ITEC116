@@ -40,7 +40,12 @@ const Dashboard: React.FC = () => {
             const fetchedNotes = await notesAPI.getAll();
             setNotes(fetchedNotes);
         } catch (err: any) {
-            setError('Failed to load notes. Please try again.');
+            if (err.response?.status === 401) {
+                setError('Your session has expired. Please log in again.');
+                setTimeout(() => logout(), 2000);
+            } else {
+                setError('Failed to load notes. Please try again.');
+            }
             console.error('Error fetching notes:', err);
         } finally {
             setLoading(false);
@@ -70,8 +75,14 @@ const Dashboard: React.FC = () => {
                 note._id === editNote._id ? updatedNote : note
             ));
             setEditNote(null);
+            setError(null);
         } catch (err: any) {
-            setError('Failed to update note. Please try again.');
+            if (err.response?.status === 401) {
+                setError('Your session has expired. Please log in again.');
+                setTimeout(() => logout(), 2000);
+            } else {
+                setError('Failed to update note. Please try again.');
+            }
             console.error('Error updating note:', err);
         } finally {
             setActionLoading(false);
@@ -83,8 +94,14 @@ const Dashboard: React.FC = () => {
             setActionLoading(true);
             await notesAPI.delete(id);
             setNotes(notes.filter(note => note._id !== id));
+            setError(null);
         } catch (err: any) {
-            setError('Failed to delete note. Please try again.');
+            if (err.response?.status === 401) {
+                setError('Your session has expired. Please log in again.');
+                setTimeout(() => logout(), 2000);
+            } else {
+                setError('Failed to delete note. Please try again.');
+            }
             console.error('Error deleting note:', err);
         } finally {
             setActionLoading(false);
