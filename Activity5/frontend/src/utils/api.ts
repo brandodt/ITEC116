@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AuthResponse, LoginData, RegisterData, Post, Comment } from '../types';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = 'http://localhost:3000';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -55,17 +55,17 @@ export const postsAPI = {
 
 export const commentsAPI = {
     getByPost: async (postId: string): Promise<Comment[]> => {
-        const response = await api.get(`/comments/post/${postId}`);
+        const response = await api.get(`/posts/${postId}/comments`);
         return response.data;
     },
 
     create: async (postId: string, data: { content: string }): Promise<Comment> => {
-        const response = await api.post(`/comments/${postId}`, data);
+        const response = await api.post(`/posts/${postId}/comments`, data);
         return response.data;
     },
 
-    delete: async (id: string): Promise<void> => {
-        await api.delete(`/comments/${id}`);
+    delete: async (commentId: string, postId: string): Promise<void> => {
+        await api.delete(`/posts/${postId}/comments/${commentId}`);
     },
 };
 
