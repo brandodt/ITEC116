@@ -68,9 +68,9 @@ const BooksView = () => {
 
   // Filter and sort books based on search query and sort criteria
   const filteredAndSortedBooks = useMemo(() => {
-    // Exclude archived books if backend returns them
+    // Exclude deleted books if backend returns them
     let filteredBooks = [...books].filter(
-      (b) => !b?.archived && !b?.isArchived && b?.status !== "archived"
+      (b) => !b?.deleted && !b?.isDeleted && b?.status !== "deleted"
     );
 
     // Filter by search query if present (title, author.name, categories[].name)
@@ -81,8 +81,8 @@ const BooksView = () => {
         const author = (book?.author?.name || "").toLowerCase();
         const catHit = Array.isArray(book?.categories)
           ? book.categories.some((cat) =>
-              (cat?.name || "").toLowerCase().includes(query)
-            )
+            (cat?.name || "").toLowerCase().includes(query)
+          )
           : false;
         return title.includes(query) || author.includes(query) || catHit;
       });
@@ -179,7 +179,7 @@ const BooksView = () => {
   };
 
   // Toast-based confirm dialog (returns Promise<boolean>)
-  const confirmArchiveToast = (bookTitle) =>
+  const confirmDeleteToast = (bookTitle) =>
     new Promise((resolve) => {
       toast(
         ({ closeToast }) => (
@@ -193,7 +193,7 @@ const BooksView = () => {
                   closeToast();
                 }}
               >
-                Archive
+                Delete
               </button>
               <button
                 className="px-3 py-1.5 rounded bg-[#242424] text-gray-200 hover:bg-[#2c2c2c]"
@@ -216,18 +216,18 @@ const BooksView = () => {
       );
     });
 
-  // Archive (soft delete) instead of hard delete
+  // Delete (soft delete) instead of hard delete
   const handleDeleteBook = async (book) => {
     if (!book) return;
     const id = book._id || book.id;
     if (!id) return;
 
-    const confirmed = await confirmArchiveToast(book.title || "this book");
+    const confirmed = await confirmDeleteToast(book.title || "this book");
     if (!confirmed) return;
 
     try {
-      // 1) Preferred archive endpoint
-      let res = await fetch(`${BASE_URL}/books/${id}/archive`, {
+      // 1) Preferred Delete endpoint
+      let res = await fetch(`${BASE_URL}/books/${id}/Delete`, {
         method: "POST",
       });
       // 2) Fallbacks
@@ -235,26 +235,26 @@ const BooksView = () => {
         res = await fetch(`${BASE_URL}/books/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ archived: true }),
+          body: JSON.stringify({ deleted: true }),
         });
       }
       if (!res.ok) {
         res = await fetch(`${BASE_URL}/books/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isArchived: true }),
+          body: JSON.stringify({ isDeleted: true }),
         });
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       setBooks((prev) =>
-        prev.map((b) => ((b._id || b.id) === id ? { ...b, archived: true } : b))
+        prev.map((b) => ((b._id || b.id) === id ? { ...b, deleted: true } : b))
       );
       if ((selectedBook?._id || selectedBook?.id) === id) setSelectedBook(null);
 
-      toast.success("Book archived.");
+      toast.success("Book deleted.");
     } catch {
-      toast.error("Failed to archive book.");
+      toast.error("Failed to Delete book.");
     }
   };
 
@@ -337,18 +337,17 @@ const BooksView = () => {
                 const authorName = book?.author?.name || "Unknown Author";
                 const categoryNames = Array.isArray(book?.categories)
                   ? book.categories
-                      .map((c) => c?.name)
-                      .filter(Boolean)
-                      .join(", ")
+                    .map((c) => c?.name)
+                    .filter(Boolean)
+                    .join(", ")
                   : "Uncategorized";
                 return (
                   <div
                     key={id}
-                    className={`bg-dark-secondary p-6 rounded-lg border transition-colors ${
-                      isSelected
+                    className={`bg-dark-secondary p-6 rounded-lg border transition-colors ${isSelected
                         ? "border-[#00a2ff]"
                         : "border-dark-border hover:border-[#00a2ff]"
-                    }`}
+                      }`}
                     onClick={() => setSelectedBook(book)}
                   >
                     {/* Book Cover Placeholder */}

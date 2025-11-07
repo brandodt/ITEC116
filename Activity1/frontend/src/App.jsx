@@ -131,24 +131,24 @@ function App() {
     }
   }
 
-  const createTestTask = async () => {
-    try {
-      setLoading(true)
-      const testTask = {
-        title: `Test Task ${new Date().toLocaleTimeString()}`,
-        description: 'This is a test task to verify MongoDB connection'
-      }
-      const response = await axios.post(API_URL, testTask)
-      setTasks([response.data, ...tasks])
-      setError(null)
-      alert('Test task created successfully! Check your MongoDB collections now.')
-    } catch (err) {
-      console.error('Error creating test task:', err)
-      setError('Failed to create test task. Please check server logs.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // const createTestTask = async () => {
+  //   try {
+  //     setLoading(true)
+  //     const testTask = {
+  //       title: `Test Task ${new Date().toLocaleTimeString()}`,
+  //       description: 'This is a test task to verify MongoDB connection'
+  //     }
+  //     const response = await axios.post(API_URL, testTask)
+  //     setTasks([response.data, ...tasks])
+  //     setError(null)
+  //     alert('Test task created successfully! Check your MongoDB collections now.')
+  //   } catch (err) {
+  //     console.error('Error creating test task:', err)
+  //     setError('Failed to create test task. Please check server logs.')
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
 
   // Simple animation for header when app loads
   useEffect(() => {

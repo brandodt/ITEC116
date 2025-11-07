@@ -10,7 +10,7 @@ import { CategoryModule } from './category/category.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost/bookshelf_db'),
+    MongooseModule.forRoot(process.env.MONGODB_URI || ''),
     AuthorModule,
     CategoryModule,
     BookModule,
