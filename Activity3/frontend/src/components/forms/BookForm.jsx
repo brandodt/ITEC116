@@ -66,6 +66,13 @@ const BookForm = ({
     [categories]
   );
 
+  // Ensure publication year input only keeps numeric characters
+  const handlePublicationYearChange = (e) => {
+    const value = e.target.value || "";
+    const digitsOnly = value.replace(/\D/g, "");
+    setPublicationYear(digitsOnly);
+  };
+
   // Replace multi-select with checkbox toggles
   const toggleCategory = (id) => {
     setCategoryIds((prev) =>
@@ -258,7 +265,7 @@ const BookForm = ({
           className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="The Pragmatic Programmer"
+          placeholder="The Great Book"
           required
         />
       </div>
@@ -283,13 +290,12 @@ const BookForm = ({
       <div>
         <label className="block text-sm mb-1">Publication Year</label>
         <input
-          // changed to regular input (no number arrows)
           type="text"
           inputMode="numeric"
           className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
           value={publicationYear}
-          onChange={(e) => setPublicationYear(e.target.value)}
-          placeholder="1999"
+          onChange={handlePublicationYearChange}
+          placeholder="Enter Year"
           required
         />
       </div>

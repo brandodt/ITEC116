@@ -16,7 +16,7 @@ import "react-toastify/dist/ReactToastify.css";
 const BooksView = () => {
   const [selectedBook, setSelectedBook] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortCriteria, setSortCriteria] = useState("name");
+  const [sortCriteria, setSortCriteria] = useState("name-asc");
   const [books, setBooks] = useState([]);
   const [authors, setAuthors] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -81,8 +81,8 @@ const BooksView = () => {
         const author = (book?.author?.name || "").toLowerCase();
         const catHit = Array.isArray(book?.categories)
           ? book.categories.some((cat) =>
-            (cat?.name || "").toLowerCase().includes(query)
-          )
+              (cat?.name || "").toLowerCase().includes(query)
+            )
           : false;
         return title.includes(query) || author.includes(query) || catHit;
       });
@@ -91,12 +91,18 @@ const BooksView = () => {
     // Sort based on criteria (name, author.name, publicationYear)
     filteredBooks.sort((a, b) => {
       switch (sortCriteria) {
-        case "name":
+        case "name-asc":
           return (a?.title || "").localeCompare(b?.title || "");
-        case "author":
+        case "name-desc":
+          return (b?.title || "").localeCompare(a?.title || "");
+        case "author-asc":
           return (a?.author?.name || "").localeCompare(b?.author?.name || "");
-        case "year":
+        case "author-desc":
+          return (b?.author?.name || "").localeCompare(a?.author?.name || "");
+        case "year-desc": // Latest first
           return (b?.publicationYear || 0) - (a?.publicationYear || 0);
+        case "year-asc": // Oldest first
+          return (a?.publicationYear || 0) - (b?.publicationYear || 0);
         default:
           return 0;
       }
@@ -302,9 +308,12 @@ const BooksView = () => {
                   onChange={(e) => setSortCriteria(e.target.value)}
                   className="bg-dark-secondary text-dark-text px-3 py-2 rounded border border-dark-border focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
                 >
-                  <option value="name">Name</option>
-                  <option value="author">Author</option>
-                  <option value="year">Year</option>
+                  <option value="name-asc">Name (A–Z)</option>
+                  <option value="name-desc">Name (Z–A)</option>
+                  <option value="author-asc">Author (A–Z)</option>
+                  <option value="author-desc">Author (Z–A)</option>
+                  <option value="year-desc">Year (Latest)</option>
+                  <option value="year-asc">Year (Oldest)</option>
                 </select>
               </div>
 
@@ -337,17 +346,18 @@ const BooksView = () => {
                 const authorName = book?.author?.name || "Unknown Author";
                 const categoryNames = Array.isArray(book?.categories)
                   ? book.categories
-                    .map((c) => c?.name)
-                    .filter(Boolean)
-                    .join(", ")
+                      .map((c) => c?.name)
+                      .filter(Boolean)
+                      .join(", ")
                   : "Uncategorized";
                 return (
                   <div
                     key={id}
-                    className={`bg-dark-secondary p-6 rounded-lg border transition-colors ${isSelected
+                    className={`bg-dark-secondary p-6 rounded-lg border transition-colors ${
+                      isSelected
                         ? "border-[#00a2ff]"
                         : "border-dark-border hover:border-[#00a2ff]"
-                      }`}
+                    }`}
                     onClick={() => setSelectedBook(book)}
                   >
                     {/* Book Cover Placeholder */}
