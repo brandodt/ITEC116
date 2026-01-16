@@ -17,17 +17,43 @@ async function bootstrap() {
   // Setup Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('Weather Proxy API')
-    .setDescription('Proxy API for OpenWeatherMap with caching and error handling')
+    .setDescription(
+      `## Activity 4 - Weather Proxy API
+
+This API serves as a proxy for OpenWeatherMap with built-in caching and error handling.
+
+### Features:
+- **Weather Data**: Get current weather information for any location
+- **Caching**: Improved performance with intelligent caching
+- **Error Handling**: Robust error handling for reliable service
+- **OpenWeatherMap Integration**: Seamless integration with OpenWeatherMap API
+
+### Usage
+Query weather data by city name or coordinates.
+
+### Base URL
+Development server: \`http://localhost:3001\``,
+    )
     .setVersion('1.0.0')
     .addTag('weather', 'Weather data endpoints')
     .addServer('http://localhost:3001', 'Development server')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api', app, document, {
+    customSiteTitle: 'Weather Proxy API Docs',
+    customCss: '.swagger-ui .topbar { display: none } body { background-color: #fafafa; } .swagger-ui { color-scheme: light; }',
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: 'list',
+      filter: true,
+      showRequestDuration: true,
+    },
+  });
 
-  await app.listen(process.env.PORT ?? 3001);
-  console.log(`Application is running on: http://localhost:${process.env.PORT ?? 3001}`);
-  console.log(`Swagger documentation available at: http://localhost:${process.env.PORT ?? 3001}/api`);
+  const port = process.env.PORT ?? 3001;
+  await app.listen(port);
+  console.log(`🚀 Application is running on: http://localhost:${port}`);
+  console.log(`📚 Swagger documentation available at: http://localhost:${port}/api`);
 }
 bootstrap();

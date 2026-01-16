@@ -42,7 +42,23 @@ async function bootstrap() {
   // Swagger Documentation
   const config = new DocumentBuilder()
     .setTitle('Event Registration API')
-    .setDescription('API for the Event Registration System')
+    .setDescription(
+      `## Activity 10 - Event Registration System API
+
+This API provides endpoints for managing events, user authentication, and ticket registrations.
+
+### Features:
+- **Authentication**: Secure user login and registration with JWT tokens
+- **Users**: User profile management
+- **Events**: Create and manage events
+- **Tickets**: Register for events and manage registrations
+
+### Authentication
+Most endpoints require a Bearer token. Use the 🔒 Authorize button to add your token.
+
+### Base URL
+All endpoints are prefixed with \`/api\``,
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('Auth', 'Authentication endpoints')
@@ -52,7 +68,16 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document, {
+    customSiteTitle: 'Event Registration API Docs',
+    customCss: '.swagger-ui .topbar { display: none } body { background-color: #fafafa; } .swagger-ui { color-scheme: light; }',
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: 'list',
+      filter: true,
+      showRequestDuration: true,
+    },
+  });
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);

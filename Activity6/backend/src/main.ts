@@ -39,7 +39,7 @@ All endpoints are prefixed with \`/api\``,
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document, {
     customSiteTitle: 'Movie Reviews API Docs',
-    customCss: '.swagger-ui .topbar { display: none }',
+    customCss: '.swagger-ui .topbar { display: none } body { background-color: #fafafa; } .swagger-ui { color-scheme: light; }',
     swaggerOptions: {
       persistAuthorization: true,
       docExpansion: 'list',
