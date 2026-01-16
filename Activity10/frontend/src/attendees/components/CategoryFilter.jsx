@@ -20,17 +20,17 @@ const CategoryFilter = ({ categories, selectedCategory, onSelect }) => {
         <span>All Events</span>
       </button>
 
-      {categories?.map((category) => (
+      {categories?.map((category, index) => (
         <button
-          key={category.id}
-          onClick={() => onSelect(category.id)}
+          key={category.id || category.name || index}
+          onClick={() => onSelect(category.id || category.name)}
           className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-            selectedCategory === category.id
+            selectedCategory === (category.id || category.name)
               ? 'bg-gradient-to-r from-sky-500 to-violet-600 text-white shadow-lg shadow-sky-500/25'
               : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
           }`}
         >
-          <span>{category.icon}</span>
+          {category.icon && <span>{category.icon}</span>}
           <span>{category.name}</span>
         </button>
       ))}

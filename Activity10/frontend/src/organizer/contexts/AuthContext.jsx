@@ -1,22 +1,20 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { mockOrganizers } from '../../shared/data/mockData';
+import { login as apiLogin, getCurrentUser, logout as apiLogout } from '../../shared/services/authService';
+import { getStoredUser, setStoredUser, clearAuth, setAuthContext } from '../../shared/services/api';
 
 /**
  * Authentication Context for Organizer Module
  * Provides user authentication state and permission checks
- * Each organizer can only manage their own events
+ * Connected to NestJS backend
  */
 
 const AuthContext = createContext(null);
 
 export const ROLES = {
-  ADMIN: 'ADMIN',
-  ORGANIZER: 'ORGANIZER',
-  ATTENDEE: 'ATTENDEE',
+  ADMIN: 'admin',
+  ORGANIZER: 'organizer',
+  ATTENDEE: 'attendee',
 };
-
-// Storage key for session persistence
-const STORAGE_KEY = 'organizer_session';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -25,23 +23,24 @@ export const AuthProvider = ({ children }) => {
 
   // Check for existing session on mount
   useEffect(() => {
-    const checkSession = () => {
+    const checkSession = async () => {
+      setAuthContext('organizer'); // Use organizer-specific storage
       try {
-        const storedSession = localStorage.getItem(STORAGE_KEY);
-        if (storedSession) {
-          const sessionData = JSON.parse(storedSession);
-          // Validate session (check if user still exists)
-          const organizer = mockOrganizers.find(o => o.id === sessionData.id);
-          if (organizer) {
-            const { password, ...userWithoutPassword } = organizer;
-            setUser(userWithoutPassword);
+        const storedUser = getStoredUser();
+        if (storedUser && (storedUser.role === ROLES.ORGANIZER || storedUser.role === ROLES.ADMIN)) {
+          // Verify token is still valid
+          const currentUser = await getCurrentUser();
+          if (currentUser.role === ROLES.ORGANIZER || currentUser.role === ROLES.ADMIN) {
+            setUser(currentUser);
+            setStoredUser(currentUser);
             setIsAuthenticated(true);
           } else {
-            localStorage.removeItem(STORAGE_KEY);
+            clearAuth();
           }
         }
       } catch (error) {
-        localStorage.removeItem(STORAGE_KEY);
+        console.error('Session check failed:', error);
+        clearAuth();
       } finally {
         setIsLoading(false);
       }
@@ -52,7 +51,7 @@ export const AuthProvider = ({ children }) => {
 
   const hasRole = useCallback((role) => {
     if (!user) return false;
-    return user.role === role;
+    return user.role === role.toLowerCase();
   }, [user]);
 
   const hasPermission = useCallback((permission) => {
@@ -90,42 +89,31 @@ export const AuthProvider = ({ children }) => {
     return permissions[user.role]?.includes(permission) || false;
   }, [user]);
 
-  // Check if organizer owns a specific event
+  // Check if organizer owns a specific event (handled by backend now)
   const ownsEvent = useCallback((eventId) => {
-    if (!user || !user.eventsOwned) return false;
-    return user.eventsOwned.includes(eventId);
-  }, [user]);
+    // Backend handles ownership validation
+    return true;
+  }, []);
 
   const login = useCallback(async (email, password) => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    setAuthContext('organizer'); // Use organizer-specific storage
+    const response = await apiLogin(email, password);
     
-    // Find matching organizer
-    const organizer = mockOrganizers.find(
-      o => o.email.toLowerCase() === email.toLowerCase() && o.password === password
-    );
-    
-    if (!organizer) {
-      throw new Error('Invalid email or password');
+    if (response.user && (response.user.role === ROLES.ORGANIZER || response.user.role === ROLES.ADMIN)) {
+      setUser(response.user);
+      setIsAuthenticated(true);
+      return response.user;
     }
     
-    // Remove password from user object
-    const { password: _, ...userWithoutPassword } = organizer;
-    
-    // Store session
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: organizer.id }));
-    
-    setUser(userWithoutPassword);
-    setIsAuthenticated(true);
-    
-    return userWithoutPassword;
+    // Not an organizer
+    clearAuth();
+    throw new Error('Access denied. Organizer privileges required.');
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    apiLogout();
     setUser(null);
     setIsAuthenticated(false);
-    // Redirect to login
     window.location.hash = 'organizer-login';
   }, []);
 

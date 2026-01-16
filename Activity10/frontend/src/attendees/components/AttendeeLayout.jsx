@@ -100,12 +100,12 @@ const AttendeeLayout = ({ children, activePage = 'discover' }) => {
                   <div className="hidden sm:flex items-center gap-3 pl-3 border-l border-slate-700">
                     <div className="text-right">
                       <p className="text-sm font-medium text-white">
-                        {user?.firstName || 'Guest'}
+                        {user?.name || user?.firstName || 'Guest'}
                       </p>
                       <p className="text-xs text-slate-400">Attendee</p>
                     </div>
                     <img
-                      src={user?.avatar || `https://ui-avatars.com/api/?name=User&background=0ea5e9&color=fff`}
+                      src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=0ea5e9&color=fff`}
                       alt="Avatar"
                       className="w-9 h-9 rounded-full ring-2 ring-sky-500/30"
                     />

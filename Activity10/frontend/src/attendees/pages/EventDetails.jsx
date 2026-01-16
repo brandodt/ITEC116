@@ -87,6 +87,7 @@ const EventDetails = ({ eventId }) => {
   };
 
   const formatDate = (dateStr) => {
+    if (!dateStr) return 'TBD';
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -96,13 +97,60 @@ const EventDetails = ({ eventId }) => {
     });
   };
 
+  // Get the minimum price from ticketPrices or use price field
+  const getEventPrice = (eventData) => {
+    if (!eventData) return 0;
+    if (eventData.price !== undefined && eventData.price !== null) {
+      return eventData.price;
+    }
+    if (eventData.ticketPrices && typeof eventData.ticketPrices === 'object') {
+      const prices = Object.values(eventData.ticketPrices).filter(p => typeof p === 'number');
+      if (prices.length > 0) {
+        return Math.min(...prices);
+      }
+    }
+    return 0; // Free by default
+  };
+
+  // Convert ticketPrices object or price field to ticketTypes array
+  const getTicketTypes = (eventData) => {
+    if (!eventData) return [];
+    
+    const availableSpots = (eventData.capacity ?? 100) - (eventData.registrations ?? eventData.registeredCount ?? 0);
+    
+    // If event has ticketPrices object, use it to build ticket types with prices
+    if (eventData.ticketPrices && typeof eventData.ticketPrices === 'object') {
+      const entries = Object.entries(eventData.ticketPrices);
+      if (entries.length > 0) {
+        return entries.map(([name, price], index) => ({
+          id: `ticket-${index}`,
+          name: name,
+          price: price ?? 0,
+          available: availableSpots,
+        }));
+      }
+    }
+    
+    // Fallback: create a single ticket type from price field
+    const price = eventData.price ?? 0;
+    return [{
+      id: 'general',
+      name: 'General Admission',
+      price: price,
+      available: availableSpots,
+    }];
+  };
+
   const formatPrice = (price) => {
-    if (price === 0) return 'Free';
+    if (price === undefined || price === null || price === 0) return 'Free';
     return `₱${price.toLocaleString()}`;
   };
 
-  const spotsLeft = event ? event.capacity - event.registrations : 0;
+  const registrations = event ? (event.registrations ?? event.registeredCount ?? 0) : 0;
+  const capacity = event ? (event.capacity ?? 0) : 0;
+  const spotsLeft = capacity - registrations;
   const isSoldOut = spotsLeft <= 0;
+  const eventPrice = getEventPrice(event);
 
   if (isLoading) {
     return (
@@ -293,7 +341,7 @@ const EventDetails = ({ eventId }) => {
             {showRegistration ? (
               <RegistrationForm
                 event={event}
-                ticketTypes={event.ticketTypes}
+                ticketTypes={getTicketTypes(event)}
                 onSubmit={handleRegister}
                 onCancel={() => setShowRegistration(false)}
                 isSubmitting={isRegistering}
@@ -303,7 +351,7 @@ const EventDetails = ({ eventId }) => {
                 <div className="text-center mb-6">
                   <p className="text-sm text-slate-400 mb-1">Starting from</p>
                   <p className="text-4xl font-bold bg-gradient-to-r from-sky-400 to-violet-400 bg-clip-text text-transparent">
-                    {formatPrice(event.price)}
+                    {formatPrice(eventPrice)}
                   </p>
                 </div>
 
@@ -342,13 +390,13 @@ const EventDetails = ({ eventId }) => {
                     <div className="flex items-center justify-between text-sm mb-1">
                       <span className="text-slate-400">Spots filled</span>
                       <span className="text-white">
-                        {event.registrations} / {event.capacity}
+                        {registrations} / {capacity}
                       </span>
                     </div>
                     <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-sky-500 to-violet-600 rounded-full transition-all"
-                        style={{ width: `${(event.registrations / event.capacity) * 100}%` }}
+                        style={{ width: `${capacity > 0 ? (registrations / capacity) * 100 : 0}%` }}
                       />
                     </div>
                   </div>

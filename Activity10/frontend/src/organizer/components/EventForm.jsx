@@ -26,6 +26,7 @@ const EventForm = ({
     category: '',
     coverImage: '',
     organizerName: '',
+    price: '',
   });
 
   const fileInputRef = useRef(null);
@@ -46,6 +47,17 @@ const EventForm = ({
   // Initialize form with existing event data
   useEffect(() => {
     if (initialEvent) {
+      // Get price from ticketPrices or price field
+      let eventPrice = '';
+      if (initialEvent.price !== undefined && initialEvent.price !== null) {
+        eventPrice = initialEvent.price.toString();
+      } else if (initialEvent.ticketPrices && typeof initialEvent.ticketPrices === 'object') {
+        const prices = Object.values(initialEvent.ticketPrices).filter(p => typeof p === 'number');
+        if (prices.length > 0) {
+          eventPrice = Math.min(...prices).toString();
+        }
+      }
+
       setFormData({
         name: initialEvent.name || '',
         description: initialEvent.description || '',
@@ -58,6 +70,7 @@ const EventForm = ({
         category: initialEvent.category || '',
         coverImage: initialEvent.imageUrl || initialEvent.coverImage || '',
         organizerName: initialEvent.organizerName || '',
+        price: eventPrice,
       });
       if (initialEvent.imageUrl || initialEvent.coverImage) {
         setImagePreview(initialEvent.imageUrl || initialEvent.coverImage);
@@ -110,6 +123,14 @@ const EventForm = ({
         newErrors.capacity = 'Capacity must be at least 1';
       } else if (cap > 100000) {
         newErrors.capacity = 'Capacity cannot exceed 100,000';
+      }
+    }
+
+    // Validate price (optional, but must be valid if provided)
+    if (data.price !== '' && data.price !== undefined) {
+      const priceNum = parseFloat(data.price);
+      if (isNaN(priceNum) || priceNum < 0) {
+        newErrors.price = 'Price must be 0 or greater';
       }
     }
 
@@ -202,10 +223,17 @@ const EventForm = ({
       return;
     }
 
-    // Prepare payload
+    // Prepare payload - remove organizerName as backend sets it from the logged-in user
+    const { organizerName, price, ...eventData } = formData;
+    const priceValue = price !== '' ? parseFloat(price) : 0;
     const payload = {
-      ...formData,
+      ...eventData,
       capacity: parseInt(formData.capacity, 10),
+      imageUrl: formData.coverImage || undefined,
+      // Store price both directly and in ticketPrices format for compatibility
+      price: priceValue,
+      ticketPrices: { 'General Admission': priceValue },
+      ticketTypes: ['General Admission'],
     };
 
     try {
@@ -483,8 +511,8 @@ const EventForm = ({
         />
       </div>
 
-      {/* Capacity and Category Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Capacity, Price, and Category Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">
             <Users className="w-4 h-4 inline mr-1" />
@@ -511,6 +539,34 @@ const EventForm = ({
           {touched.capacity && errors.capacity && (
             <p className="mt-1.5 text-sm text-red-400">{errors.capacity}</p>
           )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-2">
+            ₱ Ticket Price
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            name="price"
+            value={formData.price}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onKeyDown={(e) => {
+              if (['e', 'E', '+', '-'].includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            placeholder="0 for free"
+            min="0"
+            step="0.01"
+            className={getInputClasses('price')}
+            disabled={isSubmitting}
+          />
+          {touched.price && errors.price && (
+            <p className="mt-1.5 text-sm text-red-400">{errors.price}</p>
+          )}
+          <p className="mt-1 text-xs text-slate-500">Leave empty or 0 for free events</p>
         </div>
 
         <div>

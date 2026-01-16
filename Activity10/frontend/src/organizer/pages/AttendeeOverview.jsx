@@ -66,10 +66,12 @@ const AttendeeOverview = () => {
     try {
       setIsLoadingAttendees(true);
       const data = await fetchEventAttendees(selectedEventId);
-      setAttendees(data);
+      // Ensure data is always an array
+      setAttendees(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error('Failed to load attendees');
       console.error('Load attendees error:', error);
+      setAttendees([]);
     } finally {
       setIsLoadingAttendees(false);
     }

@@ -1,22 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockAttendeeUsers } from '../../shared/data/mockData';
+import { login as apiLogin, register as apiRegister, getCurrentUser, logout as apiLogout } from '../../shared/services/authService';
+import { getStoredUser, setStoredUser, clearAuth, setAuthContext } from '../../shared/services/api';
+import api from '../../shared/services/api';
 
 /**
  * Attendee Auth Context
  * Provides authentication state for attendee users
+ * Connected to NestJS backend
  */
-
-// Default mock user (first attendee from shared data)
-const defaultMockUser = mockAttendeeUsers[0] || {
-  id: 'user-001',
-  firstName: 'Juan',
-  lastName: 'Dela Cruz',
-  email: 'juan@email.com',
-  avatar: 'https://ui-avatars.com/api/?name=Juan+DC&background=0ea5e9&color=fff',
-  role: 'attendee',
-  phone: '+63 912 345 6789',
-  createdAt: '2025-06-15T00:00:00Z',
-};
 
 const AttendeeAuthContext = createContext(null);
 
@@ -35,83 +26,78 @@ export const AttendeeAuthProvider = ({ children }) => {
 
   // Check for existing session on mount
   useEffect(() => {
-    const checkAuth = () => {
-      const savedUser = localStorage.getItem('attendee_user');
-      if (savedUser) {
-        try {
-          const parsedUser = JSON.parse(savedUser);
-          setUser(parsedUser);
-          setIsAuthenticated(true);
-        } catch (e) {
-          localStorage.removeItem('attendee_user');
+    const checkAuth = async () => {
+      setAuthContext('attendee'); // Use attendee-specific storage
+      try {
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          // Try to verify token is still valid
+          try {
+            const currentUser = await getCurrentUser();
+            setUser(currentUser);
+            setStoredUser(currentUser);
+            setIsAuthenticated(true);
+          } catch (error) {
+            // Token might be expired, but we still have stored user data
+            // Check if it's an auth error (401) or network error
+            if (error.message?.includes('Session expired') || error.message?.includes('401')) {
+              // Token is invalid, clear everything
+              clearAuth();
+              setUser(null);
+              setIsAuthenticated(false);
+            } else {
+              // Network error or other issue, use stored user for now
+              console.warn('Could not verify auth, using stored user:', error);
+              setUser(storedUser);
+              setIsAuthenticated(true);
+            }
+          }
         }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        clearAuth();
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
-    // Simulate async check
-    setTimeout(checkAuth, 300);
+    checkAuth();
   }, []);
 
   const login = async (email, password) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Check against mock attendee users
-    const foundUser = mockAttendeeUsers.find(
-      u => u.email.toLowerCase() === email.toLowerCase()
-    );
-    
-    if (foundUser && password) {
-      const userData = { ...foundUser };
-      delete userData.password;
-      setUser(userData);
-      setIsAuthenticated(true);
-      localStorage.setItem('attendee_user', JSON.stringify(userData));
-      return userData;
-    }
-    
-    // Fallback for demo (accept any valid email/password)
-    if (email && password) {
-      const userData = { ...defaultMockUser, email };
-      setUser(userData);
-      setIsAuthenticated(true);
-      localStorage.setItem('attendee_user', JSON.stringify(userData));
-      return userData;
-    }
-    
-    throw new Error('Invalid credentials');
+    setAuthContext('attendee'); // Use attendee-specific storage
+    const response = await apiLogin(email, password);
+    setUser(response.user);
+    setIsAuthenticated(true);
+    return response.user;
   };
 
   const register = async (userData) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const newUser = {
-      id: `user-${Date.now()}`,
-      ...userData,
+    setAuthContext('attendee'); // Use attendee-specific storage
+    const response = await apiRegister({
+      name: `${userData.firstName} ${userData.lastName}`,
+      email: userData.email,
+      password: userData.password,
+      phone: userData.phone,
       role: 'attendee',
-      createdAt: new Date().toISOString(),
-    };
-    
-    setUser(newUser);
+    });
+    setUser(response.user);
     setIsAuthenticated(true);
-    localStorage.setItem('attendee_user', JSON.stringify(newUser));
-    return newUser;
+    return response.user;
   };
 
   const logout = () => {
+    apiLogout();
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('attendee_user');
     window.location.hash = 'discover';
   };
 
   const updateProfile = async (updates) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Update profile via API (you may need to add this endpoint)
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
-    localStorage.setItem('attendee_user', JSON.stringify(updatedUser));
+    setStoredUser(updatedUser);
     return updatedUser;
   };
 

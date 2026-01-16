@@ -1,28 +1,37 @@
 /**
  * Event Service - Abstraction layer for event-related API operations
- * This service will connect to the NestJS backend in production
+ * Connected to NestJS backend
  * Events are filtered by the logged-in organizer
  */
 
-import { mockEvents, mockAttendees, mockOrganizers } from '../../shared/data/mockData';
+import api from '../../shared/services/api';
 
-// Simulated API delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Get current organizer's event IDs from session
-const getOrganizerEventIds = () => {
-  try {
-    const session = localStorage.getItem('organizer_session');
-    if (!session) return [];
-    
-    const { id } = JSON.parse(session);
-    
-    // Find organizer from shared data and get their owned events
-    const organizer = mockOrganizers.find(o => o.id === id);
-    return organizer?.eventsOwned || [];
-  } catch {
-    return [];
+/**
+ * Normalize event object from MongoDB format
+ * Maps _id to id and other field mappings
+ */
+const normalizeEvent = (event) => {
+  if (!event) return null;
+  
+  // Extract price from ticketPrices if available
+  let price = 0;
+  if (event.price !== undefined && event.price !== null) {
+    price = event.price;
+  } else if (event.ticketPrices && typeof event.ticketPrices === 'object') {
+    const prices = Object.values(event.ticketPrices).filter(p => typeof p === 'number');
+    if (prices.length > 0) {
+      price = Math.min(...prices);
+    }
   }
+  
+  return {
+    ...event,
+    id: event._id || event.id,
+    registrations: event.registeredCount ?? event.registrations ?? 0,
+    image: event.imageUrl || event.coverImage || event.image,
+    organizer: event.organizerName || event.organizer || 'Unknown Organizer',
+    price: price,
+  };
 };
 
 /**
@@ -30,10 +39,8 @@ const getOrganizerEventIds = () => {
  * @returns {Promise<Array>} List of events owned by the organizer
  */
 export const fetchEvents = async () => {
-  await delay(800);
-  const ownedEventIds = getOrganizerEventIds();
-  // Filter events to only show those owned by the current organizer
-  return mockEvents.filter(e => ownedEventIds.includes(e.id));
+  const events = await api.get('/events/my-events');
+  return events.map(normalizeEvent);
 };
 
 /**
@@ -42,20 +49,8 @@ export const fetchEvents = async () => {
  * @returns {Promise<Object>} Event details
  */
 export const fetchEventById = async (eventId) => {
-  await delay(500);
-  const ownedEventIds = getOrganizerEventIds();
-  const event = mockEvents.find(e => e.id === eventId);
-  
-  if (!event) {
-    throw new Error('Event not found');
-  }
-  
-  // Check if organizer owns this event
-  if (!ownedEventIds.includes(eventId)) {
-    throw new Error('You do not have permission to view this event');
-  }
-  
-  return { ...event };
+  const event = await api.get(`/events/${eventId}`);
+  return normalizeEvent(event);
 };
 
 /**
@@ -64,23 +59,8 @@ export const fetchEventById = async (eventId) => {
  * @returns {Promise<Object>} Created event
  */
 export const createEvent = async (eventData) => {
-  await delay(600);
-  const newEvent = {
-    id: `event-${Date.now()}`,
-    ...eventData,
-    registeredCount: 0,
-    checkedInCount: 0,
-    status: 'upcoming',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  mockEvents.unshift(newEvent);
-  
-  // In a real app, the backend would handle ownership
-  // For now, we add the new event ID to the organizer's owned events in memory
-  // This will persist until page refresh
-  
-  return newEvent;
+  const event = await api.post('/events', eventData);
+  return normalizeEvent(event);
 };
 
 /**
@@ -90,17 +70,8 @@ export const createEvent = async (eventData) => {
  * @returns {Promise<Object>} Updated event
  */
 export const updateEvent = async (eventId, eventData) => {
-  await delay(600);
-  const index = mockEvents.findIndex(e => e.id === eventId);
-  if (index === -1) {
-    throw new Error('Event not found');
-  }
-  mockEvents[index] = {
-    ...mockEvents[index],
-    ...eventData,
-    updatedAt: new Date().toISOString(),
-  };
-  return { ...mockEvents[index] };
+  const event = await api.patch(`/events/${eventId}`, eventData);
+  return normalizeEvent(event);
 };
 
 /**
@@ -109,12 +80,26 @@ export const updateEvent = async (eventId, eventData) => {
  * @returns {Promise<void>}
  */
 export const deleteEvent = async (eventId) => {
-  await delay(500);
-  const index = mockEvents.findIndex(e => e.id === eventId);
-  if (index === -1) {
-    throw new Error('Event not found');
-  }
-  mockEvents.splice(index, 1);
+  return api.delete(`/events/${eventId}`);
+};
+
+/**
+ * Normalize ticket/attendee data for frontend display
+ */
+const normalizeAttendee = (ticket) => {
+  if (!ticket) return null;
+  return {
+    ...ticket,
+    id: ticket._id || ticket.id,
+    // Map backend field names to what AttendeeTable expects
+    name: ticket.attendeeName || ticket.name || 'Unknown',
+    email: ticket.attendeeEmail || ticket.email || '',
+    ticketCode: ticket.qrCode || ticket.ticketCode || '',
+    company: ticket.company || '',
+    checkedIn: ticket.checkedIn || false,
+    checkInTime: ticket.checkedInAt || ticket.checkInTime,
+    status: ticket.status,
+  };
 };
 
 /**
@@ -123,32 +108,41 @@ export const deleteEvent = async (eventId) => {
  * @returns {Promise<Array>} List of attendees
  */
 export const fetchEventAttendees = async (eventId) => {
-  await delay(700);
-  const ownedEventIds = getOrganizerEventIds();
-  
-  // Check if organizer owns this event
-  if (!ownedEventIds.includes(eventId)) {
-    throw new Error('You do not have permission to view attendees for this event');
+  try {
+    const response = await api.get(`/tickets/event/${eventId}/attendees`);
+    // Handle various response formats - backend returns { tickets, stats }
+    let tickets = [];
+    if (Array.isArray(response)) {
+      tickets = response;
+    } else if (response?.tickets && Array.isArray(response.tickets)) {
+      tickets = response.tickets;
+    } else if (response?.attendees && Array.isArray(response.attendees)) {
+      tickets = response.attendees;
+    } else if (response?.data && Array.isArray(response.data)) {
+      tickets = response.data;
+    }
+    return tickets.map(normalizeAttendee).filter(Boolean);
+  } catch {
+    // Fallback to tickets endpoint
+    try {
+      const tickets = await api.get(`/tickets/event/${eventId}`);
+      const ticketArray = Array.isArray(tickets) ? tickets : [];
+      return ticketArray.map(normalizeAttendee).filter(Boolean);
+    } catch {
+      return [];
+    }
   }
-  
-  return mockAttendees.filter(a => a.eventId === eventId);
 };
 
 /**
  * Update attendee check-in status
- * @param {string} attendeeId - The attendee ID
+ * @param {string} attendeeId - The attendee/ticket ID
  * @param {boolean} checkedIn - Check-in status
  * @returns {Promise<Object>} Updated attendee
  */
 export const updateAttendeeCheckIn = async (attendeeId, checkedIn) => {
-  await delay(400);
-  const attendee = mockAttendees.find(a => a.id === attendeeId);
-  if (!attendee) {
-    throw new Error('Attendee not found');
-  }
-  attendee.checkedIn = checkedIn;
-  attendee.checkInTime = checkedIn ? new Date().toISOString() : null;
-  return { ...attendee };
+  // This would typically use a check-in endpoint
+  return api.patch(`/tickets/${attendeeId}`, { checkedIn });
 };
 
 /**
@@ -157,13 +151,11 @@ export const updateAttendeeCheckIn = async (attendeeId, checkedIn) => {
  * @returns {Promise<string>} CSV string
  */
 export const exportAttendeeList = async (eventId) => {
-  await delay(500);
-  const attendees = mockAttendees.filter(a => a.eventId === eventId);
-  const headers = ['Name', 'Email', 'Company', 'Status', 'Check-in Time'];
+  const attendees = await fetchEventAttendees(eventId);
+  const headers = ['Name', 'Email', 'Status', 'Check-in Time'];
   const rows = attendees.map(a => [
-    a.name,
-    a.email,
-    a.company || '',
+    a.attendeeName || a.name,
+    a.attendeeEmail || a.email,
     a.checkedIn ? 'Checked In' : 'Registered',
     a.checkInTime || '',
   ]);
@@ -176,17 +168,12 @@ export const exportAttendeeList = async (eventId) => {
  * @returns {Promise<Object>} Verification result
  */
 export const verifyTicket = async (ticketCode) => {
-  await delay(300);
-  const attendee = mockAttendees.find(a => a.ticketCode === ticketCode);
-  if (!attendee) {
-    return { valid: false, message: 'Invalid ticket code' };
+  try {
+    const result = await api.post('/tickets/check-in', { qrCode: ticketCode });
+    return { valid: true, message: 'Check-in successful', attendee: result };
+  } catch (error) {
+    return { valid: false, message: error.message };
   }
-  if (attendee.checkedIn) {
-    return { valid: false, message: 'Ticket already used', attendee };
-  }
-  attendee.checkedIn = true;
-  attendee.checkInTime = new Date().toISOString();
-  return { valid: true, message: 'Check-in successful', attendee };
 };
 
 /**
@@ -194,22 +181,25 @@ export const verifyTicket = async (ticketCode) => {
  * @returns {Promise<Object>} Dashboard stats
  */
 export const fetchDashboardStats = async () => {
-  await delay(600);
-  const ownedEventIds = getOrganizerEventIds();
-  const organizerEvents = mockEvents.filter(e => ownedEventIds.includes(e.id));
-  
-  const totalEvents = organizerEvents.length;
-  const upcomingEvents = organizerEvents.filter(e => e.status === 'upcoming').length;
-  const totalRegistrations = organizerEvents.reduce((sum, e) => sum + e.registeredCount, 0);
-  const totalCheckIns = organizerEvents.reduce((sum, e) => sum + e.checkedInCount, 0);
-  
-  return {
-    totalEvents,
-    upcomingEvents,
-    totalRegistrations,
-    totalCheckIns,
-    checkInRate: totalRegistrations > 0 
-      ? Math.round((totalCheckIns / totalRegistrations) * 100) 
-      : 0,
-  };
+  try {
+    return await api.get('/events/my-stats');
+  } catch {
+    // Fallback: calculate from events
+    const events = await fetchEvents();
+    
+    const totalEvents = events.length;
+    const upcomingEvents = events.filter(e => e.status === 'upcoming' || e.status === 'published').length;
+    const totalRegistrations = events.reduce((sum, e) => sum + (e.registeredCount || 0), 0);
+    const totalCheckIns = events.reduce((sum, e) => sum + (e.checkedInCount || 0), 0);
+    
+    return {
+      totalEvents,
+      upcomingEvents,
+      totalRegistrations,
+      totalCheckIns,
+      checkInRate: totalRegistrations > 0 
+        ? Math.round((totalCheckIns / totalRegistrations) * 100) 
+        : 0,
+    };
+  }
 };

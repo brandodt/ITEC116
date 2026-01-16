@@ -17,36 +17,68 @@ import 'react-toastify/dist/ReactToastify.css';
 const EventDiscovery = () => {
   const [events, setEvents] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Initial page load
+  const [isSearching, setIsSearching] = useState(false); // For search/filter updates
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedDateRange, setSelectedDateRange] = useState('all');
 
-  // Load initial data
-  const loadData = useCallback(async () => {
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Load categories once on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categoriesData = await fetchCategories();
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // Load events when filters change
+  const loadEvents = useCallback(async (showFullLoader = false) => {
     try {
-      setIsLoading(true);
-      const [eventsData, categoriesData] = await Promise.all([
-        fetchPublicEvents({
-          category: selectedCategory,
-          dateRange: selectedDateRange,
-          search: searchQuery,
-        }),
-        fetchCategories(),
-      ]);
+      if (showFullLoader) {
+        setIsLoading(true);
+      } else {
+        setIsSearching(true);
+      }
+      const eventsData = await fetchPublicEvents({
+        category: selectedCategory,
+        dateRange: selectedDateRange,
+        search: debouncedSearch,
+      });
       setEvents(eventsData);
-      setCategories(categoriesData);
     } catch (error) {
       toast.error('Failed to load events');
       console.error('Load error:', error);
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
     }
-  }, [selectedCategory, selectedDateRange, searchQuery]);
+  }, [selectedCategory, selectedDateRange, debouncedSearch]);
 
+  // Initial load
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadEvents(true);
+  }, []);
+
+  // Reload events when filters change (not initial load)
+  useEffect(() => {
+    if (!isLoading) {
+      loadEvents(false);
+    }
+  }, [selectedCategory, selectedDateRange, debouncedSearch]);
 
   // Handle event click - navigate to details
   const handleEventClick = (event) => {
@@ -87,15 +119,11 @@ const EventDiscovery = () => {
 
       {/* Category Filter */}
       <div className="mb-6">
-        {isLoading ? (
-          <CategoryFilterSkeleton />
-        ) : (
-          <CategoryFilter
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelect={setSelectedCategory}
-          />
-        )}
+        <CategoryFilter
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
       </div>
 
       {/* Filters Row */}
@@ -118,7 +146,10 @@ const EventDiscovery = () => {
         </div>
 
         {/* Results Count */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          {isSearching && (
+            <span className="w-4 h-4 border-2 border-sky-500/30 border-t-sky-500 rounded-full animate-spin" />
+          )}
           <span className="text-sm text-slate-400">
             {events.length} events found
           </span>

@@ -19,8 +19,8 @@ const EventCard = ({
     date,
     time,
     location,
-    capacity,
-    registeredCount,
+    capacity = 0,
+    registeredCount = 0,
     status,
     category,
     imageUrl,
@@ -32,12 +32,15 @@ const EventCard = ({
 
   // Format date for display
   const formatDate = (dateStr) => {
+    if (!dateStr) return 'TBD';
     const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
     return new Date(dateStr).toLocaleDateString('en-US', options);
   };
 
   // Calculate capacity percentage
-  const capacityPercent = capacity > 0 ? Math.round((registeredCount / capacity) * 100) : 0;
+  const safeCapacity = capacity || 0;
+  const safeRegistered = registeredCount || 0;
+  const capacityPercent = safeCapacity > 0 ? Math.round((safeRegistered / safeCapacity) * 100) : 0;
   const isAlmostFull = capacityPercent >= 90;
   const isFull = capacityPercent >= 100;
 
@@ -120,7 +123,7 @@ const EventCard = ({
               Registrations
             </span>
             <span className={`font-medium ${isFull ? 'text-red-400' : isAlmostFull ? 'text-yellow-400' : 'text-emerald-400'}`}>
-              {registeredCount} / {capacity}
+              {safeRegistered} / {safeCapacity}
             </span>
           </div>
           <div className="h-2 bg-slate-700 rounded-full overflow-hidden">

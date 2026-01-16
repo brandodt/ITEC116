@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { AdminAuthProvider } from './contexts/AdminAuthContext';
+import { AdminAuthProvider, useAdminAuth } from './contexts/AdminAuthContext';
 
 // Lazy load pages for better performance
+const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const EventsList = lazy(() => import('./pages/EventsList'));
 const EventDetails = lazy(() => import('./pages/EventDetails'));
@@ -26,7 +27,9 @@ const PageLoader = () => (
   </div>
 );
 
-const AdminApp = () => {
+// Inner component that uses auth context
+const AdminRouter = () => {
+  const { isAuthenticated, isLoading } = useAdminAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
 
   // Parse hash and navigate
@@ -34,7 +37,9 @@ const AdminApp = () => {
     const hash = window.location.hash.slice(1); // Remove #
     
     // Map hash routes to page names
-    if (hash.startsWith('admin-dashboard')) {
+    if (hash.startsWith('admin-login')) {
+      setCurrentPage('login');
+    } else if (hash.startsWith('admin-dashboard')) {
       setCurrentPage('dashboard');
     } else if (hash.startsWith('admin-events')) {
       setCurrentPage('events');
@@ -59,7 +64,17 @@ const AdminApp = () => {
     return () => window.removeEventListener('hashchange', parseHash);
   }, [parseHash]);
 
-  // Render current page
+  // Show loading while checking auth
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  // Render current page for authenticated users
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
@@ -77,10 +92,14 @@ const AdminApp = () => {
     }
   };
 
+  return renderPage();
+};
+
+const AdminApp = () => {
   return (
     <AdminAuthProvider>
       <Suspense fallback={<PageLoader />}>
-        {renderPage()}
+        <AdminRouter />
       </Suspense>
     </AdminAuthProvider>
   );

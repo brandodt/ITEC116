@@ -31,6 +31,17 @@ const Login = ({ mode = 'login' }) => {
     }
   };
 
+  // Password validation helper
+  const validatePassword = (password) => {
+    const errors = [];
+    if (password.length < 8) errors.push('At least 8 characters');
+    if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
+    if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
+    if (!/[0-9]/.test(password)) errors.push('One number');
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('One special character');
+    return errors;
+  };
+
   const validate = () => {
     const newErrors = {};
 
@@ -50,8 +61,12 @@ const Login = ({ mode = 'login' }) => {
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (!isLogin) {
+      // Strong password validation for registration
+      const passwordErrors = validatePassword(formData.password);
+      if (passwordErrors.length > 0) {
+        newErrors.password = `Password must have: ${passwordErrors.join(', ')}`;
+      }
     }
 
     setErrors(newErrors);
@@ -73,6 +88,7 @@ const Login = ({ mode = 'login' }) => {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
+          password: formData.password,
         });
         toast.success('Account created successfully!');
       }
@@ -214,6 +230,11 @@ const Login = ({ mode = 'login' }) => {
               </div>
               {errors.password && (
                 <p className="mt-1 text-xs text-red-400">{errors.password}</p>
+              )}
+              {!isLogin && !errors.password && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Min 8 chars, uppercase, lowercase, number & special character
+                </p>
               )}
             </div>
 

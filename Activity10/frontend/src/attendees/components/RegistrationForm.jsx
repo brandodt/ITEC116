@@ -12,6 +12,7 @@ import {
   AlertTriangle
 } from 'react-feather';
 import { checkExistingRegistration } from '../services/attendeeService';
+import { useAttendeeAuth } from '../contexts/AttendeeAuthContext';
 
 /**
  * Multi-Step Registration Form Component
@@ -19,15 +20,82 @@ import { checkExistingRegistration } from '../services/attendeeService';
  */
 
 const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting }) => {
+  const { user, isAuthenticated } = useAttendeeAuth();
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    ticketType: ticketTypes?.[0]?.id || 'general',
-    agreeToTerms: false,
+  
+  // Generate default ticket types if none provided
+  const getDefaultTicketTypes = () => {
+    const price = getEventPrice();
+    return [{
+      id: 'general',
+      name: 'General Admission',
+      price: price,
+      available: event?.capacity ? (event.capacity - (event.registrations ?? event.registeredCount ?? 0)) : 100,
+    }];
+  };
+
+  // Get event price from ticketPrices or price field
+  const getEventPrice = () => {
+    if (event?.price !== undefined && event?.price !== null) {
+      return event.price;
+    }
+    if (event?.ticketPrices && typeof event.ticketPrices === 'object') {
+      const prices = Object.values(event.ticketPrices).filter(p => typeof p === 'number');
+      if (prices.length > 0) {
+        return Math.min(...prices);
+      }
+    }
+    return 0;
+  };
+
+  // Use provided ticketTypes or generate default ones
+  const effectiveTicketTypes = (ticketTypes && ticketTypes.length > 0) 
+    ? ticketTypes.map(t => ({
+        ...t,
+        price: t.price ?? 0,
+        available: t.available ?? 100,
+      }))
+    : getDefaultTicketTypes();
+
+  // Parse user name into first and last name
+  const parseUserName = (fullName) => {
+    if (!fullName) return { firstName: '', lastName: '' };
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) {
+      return { firstName: parts[0], lastName: '' };
+    }
+    return {
+      firstName: parts[0],
+      lastName: parts.slice(1).join(' '),
+    };
+  };
+
+  const [formData, setFormData] = useState(() => {
+    const { firstName, lastName } = parseUserName(user?.name);
+    return {
+      firstName: firstName,
+      lastName: lastName,
+      email: user?.email || '',
+      phone: user?.phone || '',
+      ticketType: effectiveTicketTypes[0]?.id || 'general',
+      agreeToTerms: false,
+    };
   });
+
+  // Update form when user changes (e.g., logs in while form is open)
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const { firstName, lastName } = parseUserName(user.name);
+      setFormData(prev => ({
+        ...prev,
+        firstName: prev.firstName || firstName,
+        lastName: prev.lastName || lastName,
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.phone || '',
+      }));
+    }
+  }, [isAuthenticated, user]);
+
   const [errors, setErrors] = useState({});
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
@@ -37,6 +105,12 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
     { id: 2, name: 'Ticket Selection', icon: Tag },
     { id: 3, name: 'Confirmation', icon: Check },
   ];
+
+  // Format price safely
+  const formatPrice = (price) => {
+    if (price === undefined || price === null || price === 0) return 'Free';
+    return `₱${price.toLocaleString()}`;
+  };
 
   // Check for duplicate registration when email changes
   useEffect(() => {
@@ -118,11 +192,11 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
 
   const handleSubmit = async () => {
     if (await validateStep(3)) {
-      const selectedTicket = ticketTypes?.find(t => t.id === formData.ticketType);
+      const selectedTicket = effectiveTicketTypes.find(t => t.id === formData.ticketType);
       onSubmit({
         ...formData,
         ticketType: selectedTicket?.name || 'General Admission',
-        ticketPrice: selectedTicket?.price || 0,
+        ticketPrice: selectedTicket?.price ?? 0,
       });
     }
   };
@@ -139,7 +213,7 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
     }
   };
 
-  const selectedTicket = ticketTypes?.find(t => t.id === formData.ticketType);
+  const selectedTicket = effectiveTicketTypes.find(t => t.id === formData.ticketType);
 
   return (
     <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
@@ -330,9 +404,9 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
             </h3>
 
             <div className="space-y-3">
-              {ticketTypes?.map((ticket) => {
+              {effectiveTicketTypes.map((ticket) => {
                 const isSelected = formData.ticketType === ticket.id;
-                const isAvailable = ticket.available > 0;
+                const isAvailable = (ticket.available ?? 0) > 0;
 
                 return (
                   <label
@@ -371,9 +445,9 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
                         </div>
                       </div>
                       <p className={`text-lg font-bold ${
-                        ticket.price === 0 ? 'text-emerald-400' : 'text-white'
+                        (ticket.price ?? 0) === 0 ? 'text-emerald-400' : 'text-white'
                       }`}>
-                        {ticket.price === 0 ? 'Free' : `₱${ticket.price.toLocaleString()}`}
+                        {formatPrice(ticket.price)}
                       </p>
                     </div>
                   </label>
@@ -409,7 +483,7 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
                   <p className="text-sm text-slate-400">{selectedTicket?.name}</p>
                 </div>
                 <p className="font-bold text-white">
-                  {selectedTicket?.price === 0 ? 'Free' : `₱${selectedTicket?.price?.toLocaleString()}`}
+                  {formatPrice(selectedTicket?.price)}
                 </p>
               </div>
 
@@ -433,7 +507,7 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
               <div className="flex justify-between items-center pt-3 border-t border-slate-700/50">
                 <span className="text-lg font-semibold text-white">Total</span>
                 <span className="text-2xl font-bold bg-gradient-to-r from-sky-400 to-violet-400 bg-clip-text text-transparent">
-                  {selectedTicket?.price === 0 ? 'Free' : `₱${selectedTicket?.price?.toLocaleString()}`}
+                  {formatPrice(selectedTicket?.price)}
                 </span>
               </div>
             </div>

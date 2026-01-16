@@ -9,11 +9,14 @@ import { Calendar, MapPin, Users, Tag } from 'react-feather';
 
 const EventCard = ({ event, onClick, variant = 'default' }) => {
   const isFeatured = variant === 'featured' || event.featured;
-  const spotsLeft = event.capacity - event.registrations;
+  const registrations = event.registrations ?? event.registeredCount ?? 0;
+  const capacity = event.capacity ?? 0;
+  const spotsLeft = capacity - registrations;
   const isAlmostFull = spotsLeft <= 10 && spotsLeft > 0;
   const isFull = spotsLeft <= 0;
 
   const formatDate = (dateStr) => {
+    if (!dateStr) return 'TBD';
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -21,10 +24,26 @@ const EventCard = ({ event, onClick, variant = 'default' }) => {
     });
   };
 
+  // Get the minimum price from ticketPrices or use price field
+  const getEventPrice = () => {
+    if (event.price !== undefined && event.price !== null) {
+      return event.price;
+    }
+    if (event.ticketPrices && typeof event.ticketPrices === 'object') {
+      const prices = Object.values(event.ticketPrices).filter(p => typeof p === 'number');
+      if (prices.length > 0) {
+        return Math.min(...prices);
+      }
+    }
+    return 0; // Free by default
+  };
+
   const formatPrice = (price) => {
-    if (price === 0) return 'Free';
+    if (price === undefined || price === null || price === 0) return 'Free';
     return `₱${price.toLocaleString()}`;
   };
+
+  const eventPrice = getEventPrice();
 
   return (
     <div
@@ -67,11 +86,11 @@ const EventCard = ({ event, onClick, variant = 'default' }) => {
 
         {/* Price Badge */}
         <div className={`absolute bottom-3 right-3 px-2 py-1 rounded-lg text-sm font-bold ${
-          event.price === 0 
+          eventPrice === 0 
             ? 'bg-emerald-500/90 text-white' 
             : 'bg-white/90 text-slate-900'
         }`}>
-          {formatPrice(event.price)}
+          {formatPrice(eventPrice)}
         </div>
       </div>
 

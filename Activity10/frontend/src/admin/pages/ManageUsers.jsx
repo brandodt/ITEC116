@@ -42,6 +42,7 @@ const ManageUsers = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     role: 'organizer',
     status: 'active',
   });
@@ -75,6 +76,17 @@ const ManageUsers = () => {
     }
   };
 
+  // Password validation helper
+  const validatePassword = (password) => {
+    const errors = [];
+    if (password.length < 8) errors.push('At least 8 characters');
+    if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
+    if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
+    if (!/[0-9]/.test(password)) errors.push('One number');
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('One special character');
+    return errors;
+  };
+
   // Validate form
   const validateForm = () => {
     const errors = {};
@@ -82,6 +94,16 @@ const ManageUsers = () => {
     if (!formData.email.trim()) errors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Invalid email format';
+    }
+    // Password is required only when creating a new user
+    if (!selectedUser && !formData.password.trim()) {
+      errors.password = 'Password is required';
+    } else if (formData.password) {
+      // Validate password strength if password is provided
+      const passwordErrors = validatePassword(formData.password);
+      if (passwordErrors.length > 0) {
+        errors.password = `Password must have: ${passwordErrors.join(', ')}`;
+      }
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -93,6 +115,7 @@ const ManageUsers = () => {
     setFormData({
       name: '',
       email: '',
+      password: '',
       role: 'organizer',
       status: 'active',
     });
@@ -106,6 +129,7 @@ const ManageUsers = () => {
     setFormData({
       name: user.name,
       email: user.email,
+      password: '',
       role: user.role,
       status: user.status,
     });
@@ -121,7 +145,12 @@ const ManageUsers = () => {
     try {
       setIsSubmitting(true);
       if (selectedUser) {
-        await updateUser(selectedUser.id, formData);
+        // Only include password if it was changed
+        const updateData = { ...formData };
+        if (!updateData.password) {
+          delete updateData.password;
+        }
+        await updateUser(selectedUser.id, updateData);
         toast.success('User updated successfully');
       } else {
         await createUser(formData);
@@ -347,6 +376,31 @@ const ManageUsers = () => {
                 )}
               </div>
 
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  Password {selectedUser && <span className="text-slate-500">(leave blank to keep current)</span>}
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleFormChange}
+                  className={`w-full px-4 py-2.5 bg-slate-900/50 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
+                    formErrors.password ? 'border-red-500' : 'border-slate-600'
+                  }`}
+                  placeholder={selectedUser ? 'Enter new password' : 'Min 8 chars, upper, lower, number, special'}
+                />
+                {formErrors.password && (
+                  <p className="mt-1 text-xs text-red-400">{formErrors.password}</p>
+                )}
+                {!formErrors.password && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Min 8 chars, uppercase, lowercase, number & special character
+                  </p>
+                )}
+              </div>
+
               {/* Role */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -361,7 +415,6 @@ const ManageUsers = () => {
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                   >
                     <option value="organizer">Organizer</option>
-                    <option value="staff">Staff</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>

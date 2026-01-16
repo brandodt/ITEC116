@@ -32,10 +32,25 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
+  // Parse user name into first and last name
+  const parseUserName = (fullName) => {
+    if (!fullName) return { firstName: '', lastName: '' };
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) {
+      return { firstName: parts[0], lastName: '' };
+    }
+    return {
+      firstName: parts[0],
+      lastName: parts.slice(1).join(' '),
+    };
+  };
+
+  const { firstName: parsedFirst, lastName: parsedLast } = parseUserName(user?.name);
+
   // Profile form state
   const [formData, setFormData] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
+    firstName: user?.firstName || parsedFirst || '',
+    lastName: user?.lastName || parsedLast || '',
     email: user?.email || '',
     phone: user?.phone || '',
   });

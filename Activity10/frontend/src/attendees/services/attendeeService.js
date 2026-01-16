@@ -1,29 +1,76 @@
 /**
  * Attendee Service
  * Service layer for attendee-related API calls
- * Abstracts API communication for future NestJS backend integration
+ * Connected to NestJS backend
  */
 
-import { mockEvents, mockTickets, mockCategories, mockUser } from '../../shared/data/mockData';
+import api from '../../shared/services/api';
+import { getStoredUser } from '../../shared/services/api';
 
-// Simulated API delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Normalize event data to ensure consistent field names
+ */
+const normalizeEvent = (event) => ({
+  ...event,
+  id: event._id || event.id,
+  registrations: event.registeredCount || event.registrations || 0,
+  image: event.imageUrl || event.coverImage || event.image,
+  organizer: event.organizerName || event.organizer || 'Unknown Organizer',
+  price: getEventPriceFromData(event),
+});
+
+/**
+ * Extract price from ticketPrices object or price field
+ */
+const getEventPriceFromData = (event) => {
+  if (event.price !== undefined && event.price !== null) {
+    return event.price;
+  }
+  if (event.ticketPrices && typeof event.ticketPrices === 'object') {
+    const prices = Object.values(event.ticketPrices).filter(p => typeof p === 'number');
+    if (prices.length > 0) {
+      return Math.min(...prices);
+    }
+  }
+  return 0;
+};
+
+/**
+ * Normalize ticket data
+ */
+const normalizeTicket = (ticket) => ({
+  ...ticket,
+  id: ticket._id || ticket.id,
+});
 
 /**
  * Fetch all public events for discovery
  */
 export const fetchPublicEvents = async (filters = {}) => {
-  await delay(500);
-  
-  // Filter events that are published or upcoming (for attendee discovery)
-  let events = [...mockEvents].filter(e => e.status === 'published' || e.status === 'upcoming');
+  let endpoint = '/events/public';
+  const params = new URLSearchParams();
   
   // Apply category filter
   if (filters.category && filters.category !== 'all') {
-    events = events.filter(e => e.category === filters.category);
+    params.append('category', filters.category);
   }
   
-  // Apply date filter
+  // Apply search filter
+  if (filters.search) {
+    params.append('search', filters.search);
+  }
+  
+  const queryString = params.toString();
+  if (queryString) {
+    endpoint += `?${queryString}`;
+  }
+  
+  let events = await api.get(endpoint);
+  
+  // Normalize events
+  events = events.map(normalizeEvent);
+  
+  // Apply date filter (client-side if not supported by backend)
   if (filters.dateRange) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -57,16 +104,6 @@ export const fetchPublicEvents = async (filters = {}) => {
     }
   }
   
-  // Apply search filter
-  if (filters.search) {
-    const searchLower = filters.search.toLowerCase();
-    events = events.filter(e => 
-      e.name.toLowerCase().includes(searchLower) ||
-      e.description.toLowerCase().includes(searchLower) ||
-      e.location.toLowerCase().includes(searchLower)
-    );
-  }
-  
   // Sort by date (upcoming first)
   events.sort((a, b) => new Date(a.date) - new Date(b.date));
   
@@ -77,210 +114,165 @@ export const fetchPublicEvents = async (filters = {}) => {
  * Fetch single event details
  */
 export const fetchEventById = async (eventId) => {
-  await delay(300);
-  const event = mockEvents.find(e => e.id === eventId);
-  if (!event) {
-    throw new Error('Event not found');
-  }
-  return event;
+  const event = await api.get(`/events/public/${eventId}`);
+  return normalizeEvent(event);
 };
 
 /**
  * Fetch all categories
  */
 export const fetchCategories = async () => {
-  await delay(200);
-  return mockCategories;
+  try {
+    const categories = await api.get('/events/categories');
+    // Backend returns array of strings, keep original name as id for proper matching
+    if (Array.isArray(categories)) {
+      return categories.map(cat => {
+        // Handle both string categories and already-formatted objects
+        if (typeof cat === 'string') {
+          // Use original category name as id to match backend data
+          return { id: cat, name: cat };
+        }
+        return cat;
+      }).filter(cat => cat.name); // Remove empty categories
+    }
+    return [];
+  } catch {
+    // Fallback categories if endpoint doesn't exist
+    return [
+      { id: 'Technology', name: 'Technology' },
+      { id: 'Workshop', name: 'Workshop' },
+      { id: 'Networking', name: 'Networking' },
+      { id: 'Conference', name: 'Conference' },
+      { id: 'Music & Arts', name: 'Music & Arts' },
+      { id: 'Sports', name: 'Sports' },
+      { id: 'Education', name: 'Education' },
+      { id: 'Business', name: 'Business' },
+    ];
+  }
 };
 
 /**
  * Check if user is already registered for an event
  */
 export const checkExistingRegistration = async (eventId, email) => {
-  await delay(200);
-  
-  // Check if there's already a valid ticket for this event and email
-  const existingTicket = mockTickets.find(
-    t => t.eventId === eventId && 
-         t.attendeeEmail.toLowerCase() === email.toLowerCase() &&
-         t.status !== 'cancelled'
-  );
-  
-  return existingTicket || null;
+  try {
+    const tickets = await api.get('/tickets/my-tickets');
+    const existingTicket = tickets.find(
+      t => t.eventId === eventId && 
+           t.attendeeEmail?.toLowerCase() === email.toLowerCase() &&
+           t.status !== 'cancelled'
+    );
+    return existingTicket || null;
+  } catch {
+    return null;
+  }
 };
 
 /**
  * Register for an event
  */
 export const registerForEvent = async (eventId, registrationData) => {
-  await delay(800);
-  
-  const event = mockEvents.find(e => e.id === eventId);
-  if (!event) {
-    throw new Error('Event not found');
-  }
-  
-  // Check for duplicate registration
-  const existingRegistration = mockTickets.find(
-    t => t.eventId === eventId && 
-         t.attendeeEmail.toLowerCase() === registrationData.email.toLowerCase() &&
-         t.status !== 'cancelled'
-  );
-  
-  if (existingRegistration) {
-    throw new Error('You are already registered for this event. Check your tickets to view your registration.');
-  }
-  
-  // Check availability
-  if (event.registrations >= event.capacity) {
-    throw new Error('Event is fully booked');
-  }
-  
-  // Generate ticket
-  const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-  const qrCode = `EVT:${eventId}:ATT:${ticketId}:${Date.now()}`;
-  
-  const newTicket = {
-    id: ticketId,
+  const payload = {
     eventId,
-    eventName: event.name,
-    eventDate: event.date,
-    eventTime: event.time,
-    eventLocation: event.location,
-    eventImage: event.image,
     attendeeName: `${registrationData.firstName} ${registrationData.lastName}`,
     attendeeEmail: registrationData.email,
     ticketType: registrationData.ticketType || 'General Admission',
-    qrCode,
-    status: 'valid',
-    registeredAt: new Date().toISOString(),
-    checkedIn: false,
+    phone: registrationData.phone,
+    specialRequirements: registrationData.specialRequirements,
   };
   
-  // Add to mock tickets (in real app, this goes to backend)
-  mockTickets.push(newTicket);
-  
-  return newTicket;
+  return api.post('/tickets/register', payload);
 };
 
 /**
  * Fetch user's tickets
  */
 export const fetchMyTickets = async () => {
-  await delay(400);
-  // In real app, filter by authenticated user
-  return mockTickets.sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
+  try {
+    const tickets = await api.get('/tickets/my-tickets');
+    return tickets.map(normalizeTicket).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } catch {
+    return [];
+  }
 };
 
 /**
  * Fetch single ticket details
  */
 export const fetchTicketById = async (ticketId) => {
-  await delay(200);
-  const ticket = mockTickets.find(t => t.id === ticketId);
-  if (!ticket) {
-    throw new Error('Ticket not found');
-  }
-  return ticket;
+  const ticket = await api.get(`/tickets/${ticketId}`);
+  return normalizeTicket(ticket);
 };
 
 /**
  * Cancel a ticket
  */
 export const cancelTicket = async (ticketId) => {
-  await delay(500);
-  const ticketIndex = mockTickets.findIndex(t => t.id === ticketId);
-  if (ticketIndex === -1) {
-    throw new Error('Ticket not found');
-  }
-  
-  mockTickets[ticketIndex].status = 'cancelled';
-  return mockTickets[ticketIndex];
+  return api.delete(`/tickets/${ticketId}`);
 };
 
 /**
  * Update registration details
  */
 export const updateRegistration = async (ticketId, updateData) => {
-  await delay(600);
-  const ticketIndex = mockTickets.findIndex(t => t.id === ticketId);
-  if (ticketIndex === -1) {
-    throw new Error('Ticket not found');
-  }
-  
-  // Update allowed fields
-  if (updateData.attendeeName) {
-    mockTickets[ticketIndex].attendeeName = updateData.attendeeName;
-  }
-  if (updateData.attendeeEmail) {
-    mockTickets[ticketIndex].attendeeEmail = updateData.attendeeEmail;
-  }
-  if (updateData.ticketType) {
-    mockTickets[ticketIndex].ticketType = updateData.ticketType;
-  }
-  if (updateData.phone) {
-    mockTickets[ticketIndex].phone = updateData.phone;
-  }
-  if (updateData.specialRequirements !== undefined) {
-    mockTickets[ticketIndex].specialRequirements = updateData.specialRequirements;
-  }
-  
-  mockTickets[ticketIndex].updatedAt = new Date().toISOString();
-  
-  return mockTickets[ticketIndex];
+  return api.patch(`/tickets/${ticketId}`, updateData);
 };
 
 /**
  * Fetch attendee dashboard stats
  */
 export const fetchAttendeeStats = async () => {
-  await delay(300);
-  
-  const tickets = await fetchMyTickets();
-  const now = new Date();
-  
-  const upcomingTickets = tickets.filter(t => 
-    t.status === 'valid' && new Date(t.eventDate) >= now
-  );
-  
-  const pastTickets = tickets.filter(t => 
-    new Date(t.eventDate) < now
-  );
-  
-  const checkedInCount = tickets.filter(t => t.checkedIn).length;
-  
-  return {
-    totalTickets: tickets.length,
-    upcomingEvents: upcomingTickets.length,
-    pastEvents: pastTickets.length,
-    checkedInEvents: checkedInCount,
-  };
+  try {
+    return await api.get('/tickets/my-stats');
+  } catch {
+    // Fallback: calculate from tickets
+    const tickets = await fetchMyTickets();
+    const now = new Date();
+    
+    const upcomingTickets = tickets.filter(t => 
+      t.status === 'valid' && new Date(t.eventDate) >= now
+    );
+    
+    const pastTickets = tickets.filter(t => 
+      new Date(t.eventDate) < now
+    );
+    
+    const checkedInCount = tickets.filter(t => t.checkedIn).length;
+    
+    return {
+      totalTickets: tickets.length,
+      upcomingEvents: upcomingTickets.length,
+      pastEvents: pastTickets.length,
+      checkedInEvents: checkedInCount,
+    };
+  }
 };
 
 /**
  * Get current user info
  */
 export const getCurrentUser = async () => {
-  await delay(100);
-  return mockUser;
+  try {
+    return await api.get('/auth/me');
+  } catch {
+    return getStoredUser();
+  }
 };
 
 /**
  * Login
  */
 export const login = async (email, password) => {
-  await delay(600);
-  // Mock login validation
-  if (email && password) {
-    return mockUser;
-  }
-  throw new Error('Invalid credentials');
+  const response = await api.post('/auth/login', { email, password });
+  return response.user;
 };
 
 /**
  * Logout
  */
 export const logout = async () => {
-  await delay(200);
+  // Clear local storage
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('auth_user');
   return true;
 };

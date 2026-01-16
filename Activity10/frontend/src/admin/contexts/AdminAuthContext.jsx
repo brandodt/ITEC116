@@ -1,10 +1,15 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { mockAdmins } from '../../shared/data/mockData';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { login as apiLogin, getCurrentUser, logout as apiLogout } from '../../shared/services/authService';
+import { getStoredUser, setStoredUser, setAuthToken, clearAuth, setAuthContext } from '../../shared/services/api';
 
 /**
  * Admin Authentication Context
  * Manages admin authentication state and role-based access
+ * Connected to NestJS backend
  */
+
+// Set auth context to admin
+setAuthContext('admin');
 
 // Role definitions
 export const ROLES = {
@@ -14,30 +19,40 @@ export const ROLES = {
   ATTENDEE: 'attendee',
 };
 
-// Get mock admin user from shared data
-const mockAdminUser = mockAdmins[0] ? {
-  id: mockAdmins[0].id,
-  name: mockAdmins[0].name,
-  email: mockAdmins[0].email,
-  role: mockAdmins[0].role,
-  avatar: mockAdmins[0].avatar,
-  permissions: mockAdmins[0].permissions,
-} : {
-  id: 'admin-001',
-  name: 'System Admin',
-  email: 'admin@eventhub.com',
-  role: ROLES.ADMIN,
-  avatar: null,
-  permissions: ['manage_users', 'manage_events', 'view_reports', 'export_data', 'system_settings'],
-};
-
 const AdminAuthContext = createContext(null);
 
 export const AdminAuthProvider = ({ children }) => {
-  // Auto-login for development
-  const [user, setUser] = useState(mockAdminUser);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      setAuthContext('admin'); // Ensure we're using admin storage
+      try {
+        const storedUser = getStoredUser();
+        if (storedUser && storedUser.role === ROLES.ADMIN) {
+          // Verify token is still valid
+          const currentUser = await getCurrentUser();
+          if (currentUser.role === ROLES.ADMIN) {
+            setUser(currentUser);
+            setStoredUser(currentUser);
+            setIsAuthenticated(true);
+          } else {
+            clearAuth();
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        clearAuth();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   // Check if user has specific role
   const hasRole = useCallback((role) => {
@@ -55,20 +70,22 @@ export const AdminAuthProvider = ({ children }) => {
 
   // Login function
   const login = useCallback(async (email, password) => {
+    setAuthContext('admin'); // Ensure we're using admin storage
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const response = await apiLogin(email, password);
       
-      // For development, accept any credentials
-      if (email && password) {
-        setUser(mockAdminUser);
+      if (response.user && response.user.role === ROLES.ADMIN) {
+        setUser(response.user);
         setIsAuthenticated(true);
         return { success: true };
       }
       
-      throw new Error('Invalid credentials');
+      // Not an admin
+      clearAuth();
+      throw new Error('Access denied. Admin privileges required.');
     } catch (error) {
+      clearAuth();
       return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
@@ -77,10 +94,11 @@ export const AdminAuthProvider = ({ children }) => {
 
   // Logout function
   const logout = useCallback(() => {
+    setAuthContext('admin');
+    apiLogout();
     setUser(null);
     setIsAuthenticated(false);
-    // Redirect to login or home
-    window.location.hash = 'discover';
+    window.location.hash = 'admin-login';
   }, []);
 
   const value = {
