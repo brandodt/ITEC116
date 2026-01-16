@@ -4,6 +4,7 @@
 - Dela Torre, Brando
 - Marquez, Marie
 - Rontal, Anne
+- Daniel Germodo
 
 ## Project Progress
 
@@ -13,10 +14,10 @@
 - [x] Activity 3: Bookshelf API + UI
 - [x] Activity 4: Weather Proxy API
 - [x] Activity 5: Blog Platform API + UI
+- [x] Activity 6: Movie Review API + UI
+- [x] Activity 7: Task Management System
+- [x] Activity 10: Event Registration & Ticket QR Scanner
 
 ### In Progress 🚧
-- [ ] Activity 6: Movie Review API + UI
-- [ ] Activity 7: Task Management System
 - [ ] Activity 8: Chatroom REST API + UI
 - [ ] Activity 9: Mini E-Commerce API + UI
-- [ ] Activity 10: Event Registration & Ticket QR Scanner
