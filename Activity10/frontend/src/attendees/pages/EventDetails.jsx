@@ -358,9 +358,9 @@ const EventDetails = ({ eventId }) => {
                 </div>
 
                 {/* Ticket Types Preview */}
-                {event.ticketTypes && event.ticketTypes.length > 1 && (
+                {getTicketTypes(event).length > 0 && (
                   <div className="space-y-2 mb-6">
-                    {event.ticketTypes.slice(0, 3).map((ticket) => (
+                    {getTicketTypes(event).slice(0, 3).map((ticket) => (
                       <div
                         key={ticket.id}
                         className="flex items-center justify-between text-sm p-2 bg-slate-900/50 rounded-lg"
