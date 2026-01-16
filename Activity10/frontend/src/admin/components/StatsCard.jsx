@@ -1,0 +1,77 @@
+import React from 'react';
+
+/**
+ * Stats Card Component for Admin Dashboard
+ * Displays statistics with Indigo/Deep Slate gradient
+ */
+
+const StatsCard = ({ 
+  title, 
+  value, 
+  subtitle, 
+  icon: Icon, 
+  trend,
+  trendValue,
+  variant = 'default' 
+}) => {
+  const variants = {
+    default: {
+      iconBg: 'bg-slate-700/50',
+      iconColor: 'text-slate-400',
+      valueBg: '',
+    },
+    primary: {
+      iconBg: 'bg-indigo-500/20',
+      iconColor: 'text-indigo-400',
+      valueBg: 'bg-gradient-to-r from-indigo-400 to-indigo-500 bg-clip-text text-transparent',
+    },
+    success: {
+      iconBg: 'bg-emerald-500/20',
+      iconColor: 'text-emerald-400',
+      valueBg: 'bg-gradient-to-r from-emerald-400 to-emerald-500 bg-clip-text text-transparent',
+    },
+    warning: {
+      iconBg: 'bg-amber-500/20',
+      iconColor: 'text-amber-400',
+      valueBg: 'bg-gradient-to-r from-amber-400 to-amber-500 bg-clip-text text-transparent',
+    },
+    info: {
+      iconBg: 'bg-sky-500/20',
+      iconColor: 'text-sky-400',
+      valueBg: 'bg-gradient-to-r from-sky-400 to-sky-500 bg-clip-text text-transparent',
+    },
+  };
+
+  const style = variants[variant] || variants.default;
+
+  return (
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5 hover:border-indigo-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-slate-400 font-medium">{title}</p>
+        {Icon && (
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${style.iconBg}`}>
+            <Icon className={`w-5 h-5 ${style.iconColor}`} />
+          </div>
+        )}
+      </div>
+      <p className={`text-3xl font-bold ${style.valueBg || 'text-white'}`}>
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </p>
+      <div className="flex items-center justify-between mt-2">
+        {subtitle && (
+          <p className="text-xs text-slate-500">{subtitle}</p>
+        )}
+        {trend && trendValue && (
+          <div className={`flex items-center gap-1 text-xs font-medium ${
+            trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-red-400' : 'text-slate-400'
+          }`}>
+            <span>{trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}</span>
+            <span>{trendValue}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default StatsCard;
