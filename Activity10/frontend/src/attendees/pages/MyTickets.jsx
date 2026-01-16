@@ -6,6 +6,7 @@ import StatsCard from '../components/StatsCard';
 import QRCodeModal from '../components/QRCodeModal';
 import UpdateRegistrationModal from '../components/UpdateRegistrationModal';
 import { TicketListSkeleton, StatsCardSkeleton } from '../components/LoadingSkeleton';
+import { ConfirmModal } from '../../shared';
 import { fetchMyTickets, fetchAttendeeStats, cancelTicket, updateRegistration } from '../services/attendeeService';
 import { useAttendeeAuth } from '../contexts/AttendeeAuthContext';
 import { ToastContainer, toast } from 'react-toastify';
@@ -27,6 +28,9 @@ const MyTickets = () => {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [ticketToUpdate, setTicketToUpdate] = useState(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [ticketToCancel, setTicketToCancel] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Load tickets
   const loadData = useCallback(async () => {
@@ -58,18 +62,35 @@ const MyTickets = () => {
     setIsQRModalOpen(true);
   };
 
-  // Handle cancel ticket
-  const handleCancelTicket = async (ticket) => {
-    if (!window.confirm('Are you sure you want to cancel this ticket? This action cannot be undone.')) {
-      return;
-    }
+  // Handle cancel ticket - show confirmation modal
+  const handleCancelTicket = (ticket) => {
+    setTicketToCancel(ticket);
+    setIsCancelModalOpen(true);
+  };
+
+  // Confirm cancel ticket
+  const confirmCancelTicket = async () => {
+    if (!ticketToCancel) return;
 
     try {
-      await cancelTicket(ticket.id);
+      setIsCancelling(true);
+      await cancelTicket(ticketToCancel.id);
       toast.success('Ticket cancelled successfully');
+      setIsCancelModalOpen(false);
+      setTicketToCancel(null);
       loadData(); // Refresh list
     } catch (error) {
       toast.error('Failed to cancel ticket');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  // Close cancel modal
+  const closeCancelModal = () => {
+    if (!isCancelling) {
+      setIsCancelModalOpen(false);
+      setTicketToCancel(null);
     }
   };
 
@@ -296,6 +317,21 @@ const MyTickets = () => {
           setTicketToUpdate(null);
         }}
         onUpdate={handleUpdateSubmit}
+      />
+
+      {/* Cancel Ticket Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isCancelModalOpen}
+        onClose={closeCancelModal}
+        onConfirm={confirmCancelTicket}
+        title="Cancel Ticket?"
+        message="Are you sure you want to cancel this ticket? This action cannot be undone."
+        itemName={ticketToCancel?.eventName}
+        confirmText="Cancel Ticket"
+        cancelText="Keep Ticket"
+        type="cancel"
+        theme="sky"
+        isLoading={isCancelling}
       />
 
       {/* Toast Container */}

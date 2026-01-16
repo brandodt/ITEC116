@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { User, Clipboard, Shield } from 'react-feather';
 import OrganizerApp from './organizer/OrganizerApp';
 import AttendeeApp from './attendees/AttendeeApp';
 import AdminApp from './admin/AdminApp';
@@ -55,39 +56,42 @@ function App() {
           setCurrentModule('attendee');
           window.location.hash = 'discover';
         }}
-        className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+        className={`px-4 py-2 text-sm font-medium rounded-full transition-all flex items-center gap-2 ${
           currentModule === 'attendee'
             ? 'bg-gradient-to-r from-sky-500 to-violet-600 text-white'
             : 'text-slate-400 hover:text-white'
         }`}
       >
-        👤 Attendee
+        <User className="w-4 h-4" />
+        Attendee
       </button>
       <button
         onClick={() => {
           setCurrentModule('organizer');
           window.location.hash = 'organizer-login';
         }}
-        className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+        className={`px-4 py-2 text-sm font-medium rounded-full transition-all flex items-center gap-2 ${
           currentModule === 'organizer'
             ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white'
             : 'text-slate-400 hover:text-white'
         }`}
       >
-        📋 Organizer
+        <Clipboard className="w-4 h-4" />
+        Organizer
       </button>
       <button
         onClick={() => {
           setCurrentModule('admin');
           window.location.hash = 'admin-dashboard';
         }}
-        className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+        className={`px-4 py-2 text-sm font-medium rounded-full transition-all flex items-center gap-2 ${
           currentModule === 'admin'
             ? 'bg-gradient-to-r from-indigo-500 to-slate-600 text-white'
             : 'text-slate-400 hover:text-white'
         }`}
       >
-        🛡️ Admin
+        <Shield className="w-4 h-4" />
+        Admin
       </button>
     </div>
   );

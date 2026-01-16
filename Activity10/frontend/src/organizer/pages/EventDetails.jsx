@@ -18,6 +18,7 @@ import {
 import OrganizerLayout from '../components/OrganizerLayout';
 import FormDrawer from '../components/FormDrawer';
 import EventForm from '../components/EventForm';
+import { ConfirmModal } from '../../shared';
 import { fetchEventById, updateEvent, deleteEvent } from '../services/eventService';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -33,6 +34,8 @@ const EventDetails = ({ eventId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load event data
   const loadEvent = useCallback(async () => {
@@ -70,20 +73,32 @@ const EventDetails = ({ eventId }) => {
     }
   };
 
-  // Handle delete event
-  const handleDeleteEvent = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${event.name}"?`)) {
-      return;
-    }
-    
+  // Handle delete event - show confirmation modal
+  const handleDeleteEvent = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  // Confirm delete event
+  const confirmDeleteEvent = async () => {
     try {
+      setIsDeleting(true);
       await deleteEvent(eventId);
       toast.success('Event deleted successfully!');
+      setIsDeleteModalOpen(false);
       setTimeout(() => {
         window.location.hash = 'organizer-events';
       }, 500);
     } catch (error) {
       toast.error(error.message || 'Failed to delete event');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Close delete modal
+  const closeDeleteModal = () => {
+    if (!isDeleting) {
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -385,6 +400,21 @@ const EventDetails = ({ eventId }) => {
           isSubmitting={isSubmitting}
         />
       </FormDrawer>
+
+      {/* Delete Event Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteEvent}
+        title="Delete Event?"
+        message="Are you sure you want to delete this event? All registrations and attendee data will be permanently removed."
+        itemName={event?.name}
+        confirmText="Delete Event"
+        cancelText="Cancel"
+        type="delete"
+        theme="emerald"
+        isLoading={isDeleting}
+      />
 
       {/* Toast Container */}
       <ToastContainer

@@ -14,6 +14,7 @@ import {
   AlertCircle
 } from 'react-feather';
 import AttendeeLayout from '../components/AttendeeLayout';
+import { ConfirmModal } from '../../shared';
 import { useAttendeeAuth } from '../contexts/AttendeeAuthContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -29,6 +30,7 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   // Profile form state
   const [formData, setFormData] = useState({
@@ -136,10 +138,12 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      logout();
-      window.location.hash = 'discover';
-    }
+    setIsLogoutModalOpen(true);
+  };
+
+  const confirmLogout = () => {
+    logout();
+    window.location.hash = 'discover';
   };
 
   const inputClasses = "w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500";
@@ -452,6 +456,19 @@ const Profile = () => {
           </button>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        title="Sign Out?"
+        message="Are you sure you want to sign out? You'll need to log in again to access your tickets."
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        type="logout"
+        theme="sky"
+      />
 
       {/* Toast Container */}
       <ToastContainer

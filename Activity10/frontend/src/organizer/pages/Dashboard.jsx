@@ -15,6 +15,7 @@ import FormDrawer from '../components/FormDrawer';
 import EventForm from '../components/EventForm';
 import { DashboardSkeleton, EventCardSkeleton } from '../components/LoadingSkeleton';
 import { EmptyState, Toast } from '../components/Feedback';
+import { ConfirmModal } from '../../shared';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   fetchEvents, 
@@ -40,6 +41,9 @@ const Dashboard = () => {
   const [isEventDrawerOpen, setIsEventDrawerOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch dashboard data
   const loadDashboardData = useCallback(async () => {
@@ -107,21 +111,38 @@ const Dashboard = () => {
     }
   };
 
-  // Handle delete event
-  const handleDeleteEvent = async (event) => {
-    if (!window.confirm(`Are you sure you want to delete "${event.name}"?`)) {
-      return;
-    }
+  // Handle delete event - show confirmation modal
+  const handleDeleteEvent = (event) => {
+    setEventToDelete(event);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Confirm delete event
+  const confirmDeleteEvent = async () => {
+    if (!eventToDelete) return;
     
     try {
-      await deleteEvent(event.id);
-      setEvents(prev => prev.filter(e => e.id !== event.id));
+      setIsDeleting(true);
+      await deleteEvent(eventToDelete.id);
+      setEvents(prev => prev.filter(e => e.id !== eventToDelete.id));
       toast.success('Event deleted successfully!');
       // Refresh stats
       const statsData = await fetchDashboardStats();
       setStats(statsData);
+      setIsDeleteModalOpen(false);
+      setEventToDelete(null);
     } catch (error) {
       toast.error(error.message || 'Failed to delete event');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Close delete modal
+  const closeDeleteModal = () => {
+    if (!isDeleting) {
+      setIsDeleteModalOpen(false);
+      setEventToDelete(null);
     }
   };
 
@@ -306,6 +327,21 @@ const Dashboard = () => {
           isSubmitting={isSubmitting}
         />
       </FormDrawer>
+
+      {/* Delete Event Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteEvent}
+        title="Delete Event?"
+        message="Are you sure you want to delete this event? All registrations and attendee data will be permanently removed."
+        itemName={eventToDelete?.name}
+        confirmText="Delete Event"
+        cancelText="Cancel"
+        type="delete"
+        theme="emerald"
+        isLoading={isDeleting}
+      />
 
       {/* Toast Container */}
       <ToastContainer

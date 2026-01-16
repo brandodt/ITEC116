@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit3, User, Mail, Phone, Tag, FileText, Check, AlertCircle, Loader } from 'react-feather';
+import { X, Edit3, User, Mail, Phone, Tag, Check, AlertCircle, Loader } from 'react-feather';
 
 // Simple Spinner component
 const Spinner = ({ size = 'md', className = '' }) => {
@@ -27,9 +27,7 @@ const UpdateRegistrationModal = ({ ticket, isOpen, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
     attendeeName: '',
     attendeeEmail: '',
-    phone: '',
-    ticketType: '',
-    specialRequirements: ''
+    phone: ''
   });
 
   // Populate form when ticket changes
@@ -38,9 +36,7 @@ const UpdateRegistrationModal = ({ ticket, isOpen, onClose, onUpdate }) => {
       setFormData({
         attendeeName: ticket.attendeeName || '',
         attendeeEmail: ticket.attendeeEmail || '',
-        phone: ticket.phone || '',
-        ticketType: ticket.ticketType || 'General Admission',
-        specialRequirements: ticket.specialRequirements || ''
+        phone: ticket.phone || ''
       });
       setError('');
       setSuccess(false);
@@ -200,41 +196,16 @@ const UpdateRegistrationModal = ({ ticket, isOpen, onClose, onUpdate }) => {
             />
           </div>
 
-          {/* Ticket Type */}
+          {/* Ticket Type (Read-only) */}
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-2">
               <Tag className="w-4 h-4 inline mr-1" />
               Ticket Type
             </label>
-            <select
-              name="ticketType"
-              value={formData.ticketType}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500"
-              disabled={isLoading || success}
-            >
-              <option value="General Admission">General Admission</option>
-              <option value="VIP">VIP</option>
-              <option value="Early Bird">Early Bird</option>
-              <option value="Student">Student</option>
-            </select>
-          </div>
-
-          {/* Special Requirements */}
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">
-              <FileText className="w-4 h-4 inline mr-1" />
-              Special Requirements
-            </label>
-            <textarea
-              name="specialRequirements"
-              value={formData.specialRequirements}
-              onChange={handleChange}
-              placeholder="Any dietary requirements, accessibility needs, etc."
-              rows={3}
-              className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 resize-none"
-              disabled={isLoading || success}
-            />
+            <div className="w-full px-4 py-3 bg-slate-900/30 border border-slate-700 rounded-lg text-slate-300 flex items-center justify-between">
+              <span>{ticket?.ticketType || 'General Admission'}</span>
+              <span className="text-xs text-slate-500 bg-slate-700/50 px-2 py-1 rounded">Cannot be changed</span>
+            </div>
           </div>
 
           {/* Actions */}
