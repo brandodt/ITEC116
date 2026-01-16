@@ -219,12 +219,9 @@ const Login = ({ onLogin }) => {
 
             {/* Demo Credentials */}
             <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-              <p className="text-xs text-emerald-400 font-medium mb-2">Demo Credentials:</p>
+              <p className="text-xs text-emerald-400 font-medium mb-2">Accounts:</p>
               <p className="text-xs text-slate-400">
-                Email: <span className="text-white font-mono">alex@organizer.com</span>
-              </p>
-              <p className="text-xs text-slate-400">
-                Password: <span className="text-white font-mono">password123</span>
+                Organizer's accounts are provided by the admin. Please contact the admin to get access.
               </p>
             </div>
 
