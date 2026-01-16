@@ -22,7 +22,7 @@ const EventDiscovery = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedDateRange, setSelectedDateRange] = useState('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState('all'); // Default to all events
 
   // Debounce search input
   useEffect(() => {
@@ -55,7 +55,7 @@ const EventDiscovery = () => {
       }
       const eventsData = await fetchPublicEvents({
         category: selectedCategory,
-        dateRange: selectedDateRange,
+        statusFilter: selectedStatusFilter,
         search: debouncedSearch,
       });
       setEvents(eventsData);
@@ -66,7 +66,7 @@ const EventDiscovery = () => {
       setIsLoading(false);
       setIsSearching(false);
     }
-  }, [selectedCategory, selectedDateRange, debouncedSearch]);
+  }, [selectedCategory, selectedStatusFilter, debouncedSearch]);
 
   // Initial load
   useEffect(() => {
@@ -78,16 +78,35 @@ const EventDiscovery = () => {
     if (!isLoading) {
       loadEvents(false);
     }
-  }, [selectedCategory, selectedDateRange, debouncedSearch]);
+  }, [selectedCategory, selectedStatusFilter, debouncedSearch]);
 
   // Handle event click - navigate to details
   const handleEventClick = (event) => {
     window.location.hash = `event/${event.id}`;
   };
 
-  // Featured events (top 3)
-  const featuredEvents = events.filter(e => e.featured).slice(0, 3);
+  // Featured events (only show when viewing 'all' or 'upcoming')
+  const featuredEvents = (selectedStatusFilter === 'all' || selectedStatusFilter === 'upcoming') 
+    ? events.filter(e => e.featured).slice(0, 3) 
+    : [];
   const regularEvents = events.filter(e => !featuredEvents.includes(e));
+
+  // Get heading based on filters
+  const getEventsHeading = () => {
+    const statusLabels = {
+      all: 'All',
+      upcoming: 'Upcoming',
+      ongoing: 'Ongoing',
+      completed: 'Completed',
+      featured: 'Featured',
+    };
+    const statusLabel = statusLabels[selectedStatusFilter] || 'All';
+    
+    if (selectedCategory === 'all') {
+      return `${statusLabel} Events`;
+    }
+    return `${statusLabel} ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Events`;
+  };
 
   return (
     <AttendeeLayout activePage="discover">
@@ -129,18 +148,19 @@ const EventDiscovery = () => {
       {/* Filters Row */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          {/* Date Filter */}
+          {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-500" />
+            <Filter className="w-4 h-4 text-slate-500" />
             <select
-              value={selectedDateRange}
-              onChange={(e) => setSelectedDateRange(e.target.value)}
+              value={selectedStatusFilter}
+              onChange={(e) => setSelectedStatusFilter(e.target.value)}
               className="px-3 py-2 bg-slate-800/80 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50"
             >
-              <option value="all">Any Date</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
+              <option value="all">All Events</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="completed">Completed</option>
+              <option value="featured">Featured</option>
             </select>
           </div>
         </div>
@@ -179,7 +199,7 @@ const EventDiscovery = () => {
       {/* All Events Grid */}
       <div>
         <h2 className="text-xl font-semibold text-white mb-4">
-          {selectedCategory === 'all' ? 'All Events' : `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Events`}
+          {getEventsHeading()}
         </h2>
 
         {isLoading ? (

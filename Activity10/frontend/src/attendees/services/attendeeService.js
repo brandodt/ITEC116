@@ -17,6 +17,9 @@ const normalizeEvent = (event) => ({
   image: event.imageUrl || event.coverImage || event.image,
   organizer: event.organizerName || event.organizer || 'Unknown Organizer',
   price: getEventPriceFromData(event),
+  featured: event.isFeatured || event.featured || false,
+  // Use calculatedStatus if available (from enriched backend response)
+  status: event.calculatedStatus || event.status || 'upcoming',
 });
 
 /**
@@ -60,6 +63,15 @@ export const fetchPublicEvents = async (filters = {}) => {
     params.append('search', filters.search);
   }
   
+  // Apply status filter (skip if 'all' - backend returns upcoming/ongoing by default)
+  if (filters.statusFilter && filters.statusFilter !== 'all') {
+    if (filters.statusFilter === 'featured') {
+      params.append('featured', 'true');
+    } else {
+      params.append('status', filters.statusFilter.toUpperCase());
+    }
+  }
+  
   const queryString = params.toString();
   if (queryString) {
     endpoint += `?${queryString}`;
@@ -70,42 +82,12 @@ export const fetchPublicEvents = async (filters = {}) => {
   // Normalize events
   events = events.map(normalizeEvent);
   
-  // Apply date filter (client-side if not supported by backend)
-  if (filters.dateRange) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    switch (filters.dateRange) {
-      case 'today':
-        events = events.filter(e => {
-          const eventDate = new Date(e.date);
-          eventDate.setHours(0, 0, 0, 0);
-          return eventDate.getTime() === today.getTime();
-        });
-        break;
-      case 'week':
-        const weekEnd = new Date(today);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-        events = events.filter(e => {
-          const eventDate = new Date(e.date);
-          return eventDate >= today && eventDate <= weekEnd;
-        });
-        break;
-      case 'month':
-        const monthEnd = new Date(today);
-        monthEnd.setMonth(monthEnd.getMonth() + 1);
-        events = events.filter(e => {
-          const eventDate = new Date(e.date);
-          return eventDate >= today && eventDate <= monthEnd;
-        });
-        break;
-      default:
-        break;
-    }
+  // Sort by date (upcoming first for upcoming/ongoing, recent first for completed)
+  if (filters.statusFilter === 'completed') {
+    events.sort((a, b) => new Date(b.date) - new Date(a.date));
+  } else {
+    events.sort((a, b) => new Date(a.date) - new Date(b.date));
   }
-  
-  // Sort by date (upcoming first)
-  events.sort((a, b) => new Date(a.date) - new Date(b.date));
   
   return events;
 };
@@ -152,20 +134,27 @@ export const fetchCategories = async () => {
 };
 
 /**
- * Check if user is already registered for an event
+ * Check if user is already registered for an event (public - works for guests)
+ * Returns { exists: boolean, pending: boolean, ticketId?: string }
  */
 export const checkExistingRegistration = async (eventId, email) => {
   try {
-    const tickets = await api.get('/tickets/my-tickets');
-    const existingTicket = tickets.find(
-      t => t.eventId === eventId && 
-           t.attendeeEmail?.toLowerCase() === email.toLowerCase() &&
-           t.status !== 'cancelled'
-    );
-    return existingTicket || null;
+    const result = await api.get(`/tickets/check-registration?eventId=${eventId}&email=${encodeURIComponent(email)}`);
+    return {
+      exists: result.exists || false,
+      pending: result.pending || false,
+      ticketId: result.ticketId,
+    };
   } catch {
-    return null;
+    return { exists: false, pending: false };
   }
+};
+
+/**
+ * Confirm guest ticket registration via token
+ */
+export const confirmRegistration = async (token) => {
+  return api.get(`/tickets/confirm/${token}`);
 };
 
 /**

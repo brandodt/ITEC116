@@ -33,6 +33,18 @@ export class TicketsService {
   }
 
   /**
+   * Generate confirmation token
+   */
+  private generateConfirmationToken(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let token = '';
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
+  }
+
+  /**
    * Register for an event (create ticket)
    */
   async register(
@@ -57,7 +69,7 @@ export class TicketsService {
       throw new BadRequestException('This event is at full capacity');
     }
 
-    // Check for duplicate registration
+    // Check for duplicate registration (any non-cancelled ticket with same email)
     const existingTicket = await this.ticketModel.findOne({
       eventId: new Types.ObjectId(eventId),
       attendeeEmail: attendeeEmail.toLowerCase(),
@@ -66,7 +78,7 @@ export class TicketsService {
 
     if (existingTicket) {
       throw new ConflictException(
-        'You have already registered for this event with this email',
+        'This email is already registered for this event',
       );
     }
 
@@ -87,7 +99,7 @@ export class TicketsService {
       }
     }
 
-    // Create ticket
+    // Create ticket - all registrations are immediately valid
     const ticket = new this.ticketModel({
       ...createTicketDto,
       eventId: new Types.ObjectId(eventId),
@@ -100,14 +112,46 @@ export class TicketsService {
       ticketType,
       qrCode,
       status: TicketStatus.VALID,
+      confirmedAt: new Date(),
     });
 
     await ticket.save();
 
-    // Increment event registration count
+    // Increment registration count
     await this.eventsService.incrementRegistration(eventId);
 
     return ticket;
+  }
+
+  /**
+   * Confirm ticket registration via email token
+   */
+  async confirmRegistration(token: string): Promise<{ ticket: TicketDocument; message: string }> {
+    const ticket = await this.ticketModel.findOne({ confirmationToken: token });
+
+    if (!ticket) {
+      throw new NotFoundException('Invalid or expired confirmation token');
+    }
+
+    if (ticket.status !== TicketStatus.PENDING) {
+      return {
+        ticket,
+        message: 'This ticket has already been confirmed',
+      };
+    }
+
+    ticket.status = TicketStatus.VALID;
+    ticket.confirmedAt = new Date();
+    ticket.confirmationToken = undefined; // Clear the token
+    await ticket.save();
+
+    // Now increment the registration count
+    await this.eventsService.incrementRegistration(ticket.eventId.toString());
+
+    return {
+      ticket,
+      message: 'Registration confirmed successfully! Your ticket is now valid.',
+    };
   }
 
   /**
@@ -278,8 +322,9 @@ export class TicketsService {
       throw new BadRequestException('This ticket has been cancelled');
     }
 
-    // Check if event date matches (allow check-in on event day)
-    const eventDate = new Date(ticket.eventDate);
+    // Fetch the current event to get the latest date (in case it was updated)
+    const event = await this.eventsService.findById(ticket.eventId.toString());
+    const eventDate = new Date(event.date);
     const today = new Date();
     eventDate.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
@@ -339,15 +384,35 @@ export class TicketsService {
    * Get event attendees with statistics
    */
   async getEventAttendees(eventId: string) {
-    const tickets = await this.findByEvent(eventId);
+    const allTickets = await this.findByEvent(eventId);
+    
+    // Only show confirmed tickets to organizers (filter out PENDING)
+    const confirmedTickets = allTickets.filter((t) => t.status !== TicketStatus.PENDING);
 
     const stats = {
-      total: tickets.length,
-      checkedIn: tickets.filter((t) => t.checkedIn).length,
-      pending: tickets.filter((t) => !t.checkedIn && t.status === TicketStatus.VALID).length,
-      cancelled: tickets.filter((t) => t.status === TicketStatus.CANCELLED).length,
+      total: confirmedTickets.length,
+      checkedIn: confirmedTickets.filter((t) => t.checkedIn).length,
+      pending: confirmedTickets.filter((t) => !t.checkedIn && t.status === TicketStatus.VALID).length,
+      cancelled: confirmedTickets.filter((t) => t.status === TicketStatus.CANCELLED).length,
+      awaitingConfirmation: allTickets.filter((t) => t.status === TicketStatus.PENDING).length,
     };
 
-    return { tickets, stats };
+    return { tickets: confirmedTickets, stats };
+  }
+
+  /**
+   * Check if email is already registered for an event (public endpoint)
+   */
+  async checkExistingRegistration(eventId: string, email: string): Promise<{ exists: boolean; ticketId?: string }> {
+    const existingTicket = await this.ticketModel.findOne({
+      eventId: new Types.ObjectId(eventId),
+      attendeeEmail: email.toLowerCase(),
+      status: { $ne: TicketStatus.CANCELLED },
+    });
+
+    if (existingTicket) {
+      return { exists: true, ticketId: existingTicket._id.toString() };
+    }
+    return { exists: false };
   }
 }

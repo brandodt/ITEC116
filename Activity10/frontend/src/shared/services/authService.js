@@ -36,6 +36,18 @@ export const login = async (email, password) => {
 };
 
 /**
+ * Check if email exists in the system
+ */
+export const checkEmailExists = async (email) => {
+  try {
+    const response = await api.get(`/auth/check-email?email=${encodeURIComponent(email)}`);
+    return response;
+  } catch {
+    return { exists: false };
+  }
+};
+
+/**
  * Get current authenticated user profile
  */
 export const getCurrentUser = async () => {

@@ -71,7 +71,7 @@ const OrganizerLayout = ({ children, activePage = 'dashboard' }) => {
     { id: 'scanner', label: 'Check-in Scanner', icon: Camera, href: '#organizer-scanner' },
     // { id: 'announcements', label: 'Announcements', icon: Bell, href: '#organizer-announcements' },
     { id: 'reports', label: 'Reports', icon: FileText, href: '#organizer-reports' },
-    { id: 'settings', label: 'Settings', icon: Settings, href: '#organizer-settings' },
+    // { id: 'settings', label: 'Settings', icon: Settings, href: '#organizer-settings' },
   ];
 
   return (
@@ -179,12 +179,7 @@ const OrganizerLayout = ({ children, activePage = 'dashboard' }) => {
           <div className="flex-1 lg:flex-none" />
           
           <div className="flex items-center gap-4">
-            <a 
-              href="#organizer-settings"
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-            </a>
+            {/* Settings hidden for now */}
           </div>
         </header>
 

@@ -98,12 +98,22 @@ const apiRequest = async (endpoint, options = {}) => {
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
-  // Handle 401 Unauthorized - token expired or invalid
+  // Handle 401 Unauthorized
   if (response.status === 401) {
-    clearAuth();
-    // Optionally redirect to login
-    window.location.hash = 'discover';
-    throw new Error('Session expired. Please login again.');
+    // Check if this is an auth endpoint (login/register) - don't redirect, just throw error
+    const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register');
+    
+    if (!isAuthEndpoint) {
+      // Session expired for authenticated routes - clear auth and redirect
+      clearAuth();
+      window.location.hash = 'discover';
+      throw new Error('Session expired. Please login again.');
+    }
+    
+    // For auth endpoints, let the error propagate with the backend message
+    const data = await response.json().catch(() => null);
+    const errorMessage = data?.message || 'Invalid credentials';
+    throw new Error(Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage);
   }
 
   const data = await response.json().catch(() => null);

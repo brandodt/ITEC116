@@ -32,11 +32,20 @@ export class EventsController {
   @ApiOperation({ summary: 'Get all public events (for attendees)' })
   @ApiQuery({ name: 'category', required: false })
   @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'status', required: false, description: 'Filter by status: UPCOMING, ONGOING, COMPLETED' })
+  @ApiQuery({ name: 'featured', required: false, description: 'Filter featured events only' })
   findPublic(
     @Query('category') category?: string,
     @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('featured') featured?: string,
   ) {
-    return this.eventsService.findPublicEvents({ category, search });
+    return this.eventsService.findPublicEvents({ 
+      category, 
+      search, 
+      status,
+      featured: featured === 'true',
+    });
   }
 
   @Get('public/:id')

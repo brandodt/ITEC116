@@ -90,13 +90,13 @@ export class CreateEventDto {
   @IsBoolean()
   requiresApproval?: boolean;
 
-  @ApiPropertyOptional({ example: ['General Admission', 'VIP', 'Student'] })
+  @ApiPropertyOptional({ example: ['Standard', 'VIP'], description: 'Available ticket types. Standard is required, VIP is optional.' })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   ticketTypes?: string[];
 
-  @ApiPropertyOptional({ example: { 'General Admission': 0, VIP: 50, Student: 0 } })
+  @ApiPropertyOptional({ example: { Standard: 100, VIP: 250 }, description: 'Prices for each ticket type. Standard price is required.' })
   @IsOptional()
   @IsObject()
   ticketPrices?: Record<string, number>;
@@ -106,4 +106,9 @@ export class CreateEventDto {
   @IsNumber()
   @Min(0)
   price?: number;
+
+  @ApiPropertyOptional({ default: false, description: 'Whether the event is featured' })
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
 }

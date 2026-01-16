@@ -22,7 +22,7 @@ export class CreateTicketDto {
   @IsString()
   phone?: string;
 
-  @ApiPropertyOptional({ example: 'General Admission' })
+  @ApiPropertyOptional({ example: 'Standard', description: 'Ticket type: Standard or VIP' })
   @IsOptional()
   @IsString()
   ticketType?: string;

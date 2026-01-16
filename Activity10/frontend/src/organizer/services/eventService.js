@@ -31,6 +31,9 @@ const normalizeEvent = (event) => {
     image: event.imageUrl || event.coverImage || event.image,
     organizer: event.organizerName || event.organizer || 'Unknown Organizer',
     price: price,
+    featured: event.isFeatured || event.featured || false,
+    // Use calculatedStatus if available (from enriched backend response)
+    status: event.calculatedStatus || event.status || 'upcoming',
   };
 };
 

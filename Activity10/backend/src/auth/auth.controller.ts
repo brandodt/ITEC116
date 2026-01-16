@@ -1,5 +1,5 @@
-import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Post, Body, Get, UseGuards, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto';
 import { Public } from '../common/decorators/public.decorator';
@@ -23,6 +23,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Get('check-email')
+  @Public()
+  @ApiOperation({ summary: 'Check if email exists in the system' })
+  @ApiQuery({ name: 'email', required: true, description: 'Email to check' })
+  checkEmail(@Query('email') email: string) {
+    return this.authService.checkEmailExists(email);
   }
 
   @Get('me')

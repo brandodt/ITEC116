@@ -106,23 +106,7 @@ const AdminLayout = ({ children, activePage = 'dashboard' }) => {
             );
           })}
 
-          {/* Divider */}
-          <div className="my-4 border-t border-slate-800" />
-          
-          {/* Settings */}
-          <a
-            href="#admin-settings"
-            className={`
-              flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
-              ${activePage === 'settings'
-                ? 'bg-indigo-600/20 text-indigo-400 border-l-4 border-indigo-500'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }
-            `}
-          >
-            <Settings className="w-5 h-5" />
-            <span className="font-medium">Settings</span>
-          </a>
+          {/* Settings hidden for now */}
         </nav>
 
         {/* User Section - Always at bottom */}
@@ -175,17 +159,15 @@ const AdminLayout = ({ children, activePage = 'dashboard' }) => {
           
           <div className="flex items-center gap-3">
             {/* Quick Add User Button */}
-            <a
+            {/* <a
               href="#admin-users"
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25"
             >
               <UserPlus className="w-4 h-4" />
               <span className="hidden sm:inline">Add User</span>
-            </a>
+            </a> */}
             
-            <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
-              <Settings className="w-5 h-5" />
-            </button>
+            {/* Settings button hidden for now */}
           </div>
         </header>
 

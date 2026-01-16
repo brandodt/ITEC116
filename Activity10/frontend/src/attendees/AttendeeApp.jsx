@@ -6,6 +6,7 @@ import MyTickets from './pages/MyTickets';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import Profile from './pages/Profile';
+import ConfirmRegistration from './pages/ConfirmRegistration';
 
 /**
  * Attendee App Component
@@ -25,10 +26,16 @@ const AttendeeApp = () => {
     // Check for event details route: #event/evt-001
     if (cleanHash.startsWith('event/')) {
       const eventId = cleanHash.replace('event/', '');
-      return { page: 'event-details', eventId };
+      return { page: 'event-details', eventId, confirmToken: null };
     }
     
-    return { page: cleanHash, eventId: null };
+    // Check for confirmation route: #confirm/TOKEN
+    if (cleanHash.startsWith('confirm/')) {
+      const token = cleanHash.replace('confirm/', '');
+      return { page: 'confirm', eventId: null, confirmToken: token };
+    }
+    
+    return { page: cleanHash, eventId: null, confirmToken: null };
   }
 
   // Listen for hash changes
@@ -48,6 +55,8 @@ const AttendeeApp = () => {
         return <EventDiscovery />;
       case 'event-details':
         return <EventDetails eventId={currentRoute.eventId} />;
+      case 'confirm':
+        return <ConfirmRegistration token={currentRoute.confirmToken} />;
       case 'my-tickets':
         return <MyTickets />;
       case 'profile':

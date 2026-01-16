@@ -26,7 +26,8 @@ const EventForm = ({
     category: '',
     coverImage: '',
     organizerName: '',
-    price: '',
+    standardPrice: '',
+    vipPrice: '',
   });
 
   const fileInputRef = useRef(null);
@@ -44,24 +45,51 @@ const EventForm = ({
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
+  // Helper to convert date to YYYY-MM-DD format for HTML date input
+  const formatDateForInput = (dateValue) => {
+    if (!dateValue) return '';
+    // If it's already in YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+      return dateValue;
+    }
+    // Parse and convert to YYYY-MM-DD
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return '';
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return '';
+    }
+  };
+
   // Initialize form with existing event data
   useEffect(() => {
     if (initialEvent) {
-      // Get price from ticketPrices or price field
-      let eventPrice = '';
-      if (initialEvent.price !== undefined && initialEvent.price !== null) {
-        eventPrice = initialEvent.price.toString();
-      } else if (initialEvent.ticketPrices && typeof initialEvent.ticketPrices === 'object') {
-        const prices = Object.values(initialEvent.ticketPrices).filter(p => typeof p === 'number');
-        if (prices.length > 0) {
-          eventPrice = Math.min(...prices).toString();
+      // Get prices from ticketPrices object
+      let standardPrice = '';
+      let vipPrice = '';
+      
+      if (initialEvent.ticketPrices && typeof initialEvent.ticketPrices === 'object') {
+        if (initialEvent.ticketPrices['Standard'] !== undefined) {
+          standardPrice = initialEvent.ticketPrices['Standard'].toString();
         }
+        if (initialEvent.ticketPrices['VIP'] !== undefined) {
+          vipPrice = initialEvent.ticketPrices['VIP'].toString();
+        }
+      }
+      
+      // Fallback to old price field for backward compatibility
+      if (!standardPrice && initialEvent.price !== undefined && initialEvent.price !== null) {
+        standardPrice = initialEvent.price.toString();
       }
 
       setFormData({
         name: initialEvent.name || '',
         description: initialEvent.description || '',
-        date: initialEvent.date || '',
+        date: formatDateForInput(initialEvent.date),
         time: initialEvent.time || '',
         endTime: initialEvent.endTime || '',
         location: initialEvent.location || '',
@@ -70,7 +98,8 @@ const EventForm = ({
         category: initialEvent.category || '',
         coverImage: initialEvent.imageUrl || initialEvent.coverImage || '',
         organizerName: initialEvent.organizerName || '',
-        price: eventPrice,
+        standardPrice: standardPrice,
+        vipPrice: vipPrice,
       });
       if (initialEvent.imageUrl || initialEvent.coverImage) {
         setImagePreview(initialEvent.imageUrl || initialEvent.coverImage);
@@ -126,11 +155,21 @@ const EventForm = ({
       }
     }
 
-    // Validate price (optional, but must be valid if provided)
-    if (data.price !== '' && data.price !== undefined) {
-      const priceNum = parseFloat(data.price);
-      if (isNaN(priceNum) || priceNum < 0) {
-        newErrors.price = 'Price must be 0 or greater';
+    // Validate Standard ticket price (required)
+    if (data.standardPrice === '' || data.standardPrice === undefined) {
+      newErrors.standardPrice = 'Standard ticket price is required';
+    } else {
+      const standardPriceNum = parseFloat(data.standardPrice);
+      if (isNaN(standardPriceNum) || standardPriceNum < 0) {
+        newErrors.standardPrice = 'Price must be 0 or greater';
+      }
+    }
+
+    // Validate VIP ticket price (optional, but must be valid if provided)
+    if (data.vipPrice !== '' && data.vipPrice !== undefined) {
+      const vipPriceNum = parseFloat(data.vipPrice);
+      if (isNaN(vipPriceNum) || vipPriceNum < 0) {
+        newErrors.vipPrice = 'Price must be 0 or greater';
       }
     }
 
@@ -224,16 +263,28 @@ const EventForm = ({
     }
 
     // Prepare payload - remove organizerName as backend sets it from the logged-in user
-    const { organizerName, price, ...eventData } = formData;
-    const priceValue = price !== '' ? parseFloat(price) : 0;
+    const { organizerName, standardPrice, vipPrice, ...eventData } = formData;
+    const standardPriceValue = standardPrice !== '' ? parseFloat(standardPrice) : 0;
+    const vipPriceValue = vipPrice !== '' ? parseFloat(vipPrice) : null;
+    
+    // Build ticket types and prices
+    const ticketTypes = ['Standard'];
+    const ticketPrices = { 'Standard': standardPriceValue };
+    
+    // Only add VIP if price is provided
+    if (vipPriceValue !== null && vipPrice !== '') {
+      ticketTypes.unshift('VIP'); // VIP first
+      ticketPrices['VIP'] = vipPriceValue;
+    }
+    
     const payload = {
       ...eventData,
       capacity: parseInt(formData.capacity, 10),
       imageUrl: formData.coverImage || undefined,
-      // Store price both directly and in ticketPrices format for compatibility
-      price: priceValue,
-      ticketPrices: { 'General Admission': priceValue },
-      ticketTypes: ['General Admission'],
+      // Store minimum price for display and full ticketPrices for registration
+      price: standardPriceValue,
+      ticketPrices,
+      ticketTypes,
     };
 
     try {
@@ -541,32 +592,76 @@ const EventForm = ({
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            ₱ Ticket Price
+        {/* Ticket Prices Section */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-slate-300 mb-3">
+            Ticket Types & Pricing
           </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            name="price"
-            value={formData.price}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            onKeyDown={(e) => {
-              if (['e', 'E', '+', '-'].includes(e.key)) {
-                e.preventDefault();
-              }
-            }}
-            placeholder="0 for free"
-            min="0"
-            step="0.01"
-            className={getInputClasses('price')}
-            disabled={isSubmitting}
-          />
-          {touched.price && errors.price && (
-            <p className="mt-1.5 text-sm text-red-400">{errors.price}</p>
-          )}
-          <p className="mt-1 text-xs text-slate-500">Leave empty or 0 for free events</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Standard Ticket Price (Required) */}
+            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Standard Price <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">₱</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  name="standardPrice"
+                  value={formData.standardPrice}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  onKeyDown={(e) => {
+                    if (['e', 'E', '+', '-'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="0 for free"
+                  min="0"
+                  step="0.01"
+                  className={`${getInputClasses('standardPrice')} pl-8`}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {touched.standardPrice && errors.standardPrice && (
+                <p className="mt-1.5 text-sm text-red-400">{errors.standardPrice}</p>
+              )}
+              <p className="mt-1 text-xs text-slate-500">Required - Enter 0 for free events</p>
+            </div>
+
+            {/* VIP Ticket Price (Optional) */}
+            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                VIP Price <span className="text-slate-500">(Optional)</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">₱</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  name="vipPrice"
+                  value={formData.vipPrice}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  onKeyDown={(e) => {
+                    if (['e', 'E', '+', '-'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="Leave empty if no VIP"
+                  min="0"
+                  step="0.01"
+                  className={`${getInputClasses('vipPrice')} pl-8`}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {touched.vipPrice && errors.vipPrice && (
+                <p className="mt-1.5 text-sm text-red-400">{errors.vipPrice}</p>
+              )}
+              <p className="mt-1 text-xs text-slate-500">Optional - Leave empty for no VIP tickets</p>
+            </div>
+          </div>
         </div>
 
         <div>

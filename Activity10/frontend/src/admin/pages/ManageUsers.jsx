@@ -408,15 +408,21 @@ const ManageUsers = () => {
                 </label>
                 <div className="relative">
                   <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleFormChange}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                  >
-                    <option value="organizer">Organizer</option>
-                    <option value="admin">Admin</option>
-                  </select>
+                  {selectedUser?.role === 'attendee' ? (
+                    <div className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-slate-400 cursor-not-allowed">
+                      Attendee
+                    </div>
+                  ) : (
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleFormChange}
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                    >
+                      <option value="organizer">Organizer</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  )}
                 </div>
               </div>
 

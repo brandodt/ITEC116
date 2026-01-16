@@ -67,6 +67,9 @@ const normalizeEvent = (event) => {
     image: event.imageUrl || event.coverImage || event.image,
     organizer: event.organizerName || event.organizer || 'Unknown Organizer',
     price: price,
+    featured: event.isFeatured || event.featured || false,
+    // Use calculatedStatus if available (from enriched backend response)
+    status: event.calculatedStatus || event.status || 'upcoming',
   };
 };
 
@@ -261,7 +264,7 @@ export const deleteEvent = async (eventId) => {
  */
 export const toggleEventFeatured = async (eventId) => {
   const event = await api.get(`/events/${eventId}`);
-  const updated = await api.patch(`/events/${eventId}`, { featured: !event.featured });
+  const updated = await api.patch(`/events/${eventId}`, { isFeatured: !event.isFeatured });
   return normalizeEvent(updated);
 };
 
@@ -365,10 +368,14 @@ export const exportToCSV = async (dataType, filters = {}) => {
       data = events.map(e => [e._id || e.id, e.name, e.date, e.location, e.organizerName, e.capacity, e.registeredCount, e.status]);
       break;
     case 'registrations':
-      // Fetch all tickets
-      const tickets = await api.get('/tickets');
-      headers = ['ID', 'Attendee', 'Email', 'Event', 'Status', 'Checked In', 'Registered At'];
-      data = tickets.map(r => [r._id || r.id, r.attendeeName, r.attendeeEmail, r.eventName, r.status, r.checkedIn ? 'Yes' : 'No', r.createdAt]);
+      // Fetch tickets - with optional eventId filter
+      let ticketsEndpoint = '/tickets';
+      if (filters.eventId) {
+        ticketsEndpoint += `?eventId=${filters.eventId}`;
+      }
+      const tickets = await api.get(ticketsEndpoint);
+      headers = ['ID', 'Attendee', 'Email', 'Event', 'Ticket Type', 'Status', 'Checked In', 'Check-in Time', 'Registered At'];
+      data = tickets.map(r => [r._id || r.id, r.attendeeName, r.attendeeEmail, r.eventName, r.ticketType || 'General Admission', r.status, r.checkedIn ? 'Yes' : 'No', r.checkedInAt || '', r.createdAt]);
       break;
     default:
       throw new Error('Invalid data type');

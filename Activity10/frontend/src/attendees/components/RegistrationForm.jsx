@@ -98,6 +98,7 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
 
   const [errors, setErrors] = useState({});
   const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState(false);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
 
   const steps = [
@@ -118,11 +119,16 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
       if (formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && event?.id) {
         setIsCheckingDuplicate(true);
         try {
-          const existing = await checkExistingRegistration(event.id, formData.email);
-          if (existing) {
-            setDuplicateWarning(`This email is already registered for this event (Ticket: ${existing.id})`);
+          const result = await checkExistingRegistration(event.id, formData.email);
+          if (result.exists) {
+            setDuplicateWarning(`This email is already registered for this event (Ticket: ${result.ticketId})`);
+            setPendingConfirmation(false);
+          } else if (result.pending) {
+            setPendingConfirmation(true);
+            setDuplicateWarning(`You have a pending registration. Check your email for the confirmation link.`);
           } else {
             setDuplicateWarning(null);
+            setPendingConfirmation(false);
           }
         } catch (error) {
           console.error('Error checking duplicate:', error);
@@ -131,6 +137,7 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
         }
       } else {
         setDuplicateWarning(null);
+        setPendingConfirmation(false);
       }
     };
 
@@ -158,8 +165,8 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
         newErrors.phone = 'Please enter a valid phone number';
       }
       
-      // Check for duplicate registration
-      if (!newErrors.email && duplicateWarning) {
+      // Check for duplicate registration (only block if confirmed, not pending)
+      if (!newErrors.email && duplicateWarning && !pendingConfirmation) {
         newErrors.email = 'You are already registered for this event';
       }
     }
@@ -342,11 +349,19 @@ const RegistrationForm = ({ event, ticketTypes, onSubmit, onCancel, isSubmitting
                   {errors.email}
                 </p>
               )}
-              {!errors.email && duplicateWarning && (
+              {!errors.email && duplicateWarning && !pendingConfirmation && (
                 <div className="mt-2 p-3 bg-amber-500/20 border border-amber-500/30 rounded-lg">
                   <p className="text-xs text-amber-400 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                     <span>{duplicateWarning}. <a href="#my-tickets" className="underline hover:text-amber-300">View your tickets</a></span>
+                  </p>
+                </div>
+              )}
+              {!errors.email && pendingConfirmation && (
+                <div className="mt-2 p-3 bg-sky-500/20 border border-sky-500/30 rounded-lg">
+                  <p className="text-xs text-sky-400 flex items-center gap-2">
+                    <Mail className="w-4 h-4 flex-shrink-0" />
+                    <span>{duplicateWarning} Submitting again will resend the confirmation email.</span>
                   </p>
                 </div>
               )}

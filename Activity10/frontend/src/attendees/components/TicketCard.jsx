@@ -158,10 +158,10 @@ const TicketCard = ({ ticket, onViewQR, onCancel, onUpdate }) => {
         </div>
       </div>
 
-      {/* Ticket ID Footer */}
+      {/* Ticket Code Footer */}
       <div className="px-4 py-2 bg-slate-900/50 border-t border-slate-700/30">
         <p className="text-xs text-slate-500 font-mono">
-          Ticket ID: {ticket.id}
+          Ticket Code: {ticket.qrCode || ticket.id}
         </p>
       </div>
     </div>

@@ -89,7 +89,7 @@ const QRCodeModal = ({ ticket, isOpen, onClose }) => {
   const handleDownload = () => {
     if (!canvasRef.current) return;
     const link = document.createElement('a');
-    link.download = `ticket-${ticket.id}.png`;
+    link.download = `ticket-${ticket.qrCode || ticket.id}.png`;
     link.href = canvasRef.current.toDataURL('image/png');
     link.click();
   };
@@ -151,7 +151,7 @@ const QRCodeModal = ({ ticket, isOpen, onClose }) => {
           </div>
           
           <p className="text-xs text-slate-500 font-mono mb-4 text-center break-all">
-            {ticket.id}
+            {ticket.qrCode || ticket.id}
           </p>
 
           {/* Action Buttons */}

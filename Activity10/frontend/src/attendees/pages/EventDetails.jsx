@@ -54,10 +54,12 @@ const EventDetails = ({ eventId }) => {
   const handleRegister = async (formData) => {
     try {
       setIsRegistering(true);
-      const ticket = await registerForEvent(eventId, formData);
+      await registerForEvent(eventId, formData);
+      
       toast.success('Registration successful! Check your tickets.');
       setShowRegistration(false);
-      // Navigate to tickets
+      
+      // Navigate to tickets after a short delay
       setTimeout(() => {
         window.location.hash = 'my-tickets';
       }, 1500);

@@ -7,6 +7,7 @@ export type TicketDocument = Ticket & Document;
  * Ticket Status Enum
  */
 export enum TicketStatus {
+  PENDING = 'pending',  // Awaiting email confirmation (guest registrations)
   VALID = 'valid',
   USED = 'used',
   CANCELLED = 'cancelled',
@@ -49,7 +50,7 @@ export class Ticket {
   @Prop()
   phone?: string;
 
-  @Prop({ default: 'General Admission' })
+  @Prop({ default: 'Standard' })
   ticketType: string;
 
   @Prop({ type: String, enum: TicketStatus, default: TicketStatus.VALID })
@@ -75,6 +76,12 @@ export class Ticket {
 
   @Prop()
   notes?: string;
+
+  @Prop()
+  confirmationToken?: string;  // Token for email confirmation
+
+  @Prop()
+  confirmedAt?: Date;  // When the ticket was confirmed
 }
 
 export const TicketSchema = SchemaFactory.createForClass(Ticket);

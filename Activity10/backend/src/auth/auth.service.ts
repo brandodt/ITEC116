@@ -61,6 +61,17 @@ export class AuthService {
   }
 
   /**
+   * Check if email exists in the system
+   */
+  async checkEmailExists(email: string): Promise<{ exists: boolean; isActive?: boolean }> {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      return { exists: false };
+    }
+    return { exists: true, isActive: user.isActive };
+  }
+
+  /**
    * Login user with email and password
    */
   async login(loginDto: LoginDto): Promise<AuthResponse> {
@@ -69,18 +80,18 @@ export class AuthService {
     // Find user by email (with password)
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Email not found. Please check your email or register a new account.');
     }
 
     // Check if user is active
     if (!user.isActive) {
-      throw new UnauthorizedException('Account is disabled');
+      throw new UnauthorizedException('Account is disabled. Please contact support.');
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Incorrect password. Please try again.');
     }
 
     // Update last login

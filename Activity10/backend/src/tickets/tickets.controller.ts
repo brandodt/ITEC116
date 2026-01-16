@@ -37,6 +37,25 @@ export class TicketsController {
     return this.ticketsService.register(createTicketDto, user?._id?.toString());
   }
 
+  @Get('check-registration')
+  @Public()
+  @ApiOperation({ summary: 'Check if email is already registered for an event' })
+  @ApiQuery({ name: 'eventId', required: true })
+  @ApiQuery({ name: 'email', required: true })
+  checkRegistration(
+    @Query('eventId') eventId: string,
+    @Query('email') email: string,
+  ) {
+    return this.ticketsService.checkExistingRegistration(eventId, email);
+  }
+
+  @Get('confirm/:token')
+  @Public()
+  @ApiOperation({ summary: 'Confirm guest ticket registration via email token' })
+  confirmRegistration(@Param('token') token: string) {
+    return this.ticketsService.confirmRegistration(token);
+  }
+
   // ========== ATTENDEE ROUTES ==========
 
   @Get('my-tickets')

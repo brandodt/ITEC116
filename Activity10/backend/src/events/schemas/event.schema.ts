@@ -85,6 +85,9 @@ export class Event {
 
   @Prop({ default: 0 })
   price: number;
+
+  @Prop({ default: false })
+  isFeatured: boolean;
 }
 
 export const EventSchema = SchemaFactory.createForClass(Event);

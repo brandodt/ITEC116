@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, Tag, ArrowRight } from 'react-feather';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Mail, Lock, User, Eye, EyeOff, Tag, ArrowRight, CheckCircle, XCircle, AlertCircle } from 'react-feather';
 import { useAttendeeAuth } from '../contexts/AttendeeAuthContext';
+import { checkEmailExists } from '../../shared/services/authService';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 /**
  * Login/Register Page
- * Authentication page for attendees
+ * Authentication page for attendees with real-time validation
  */
 
 const Login = ({ mode = 'login' }) => {
@@ -22,6 +23,48 @@ const Login = ({ mode = 'login' }) => {
     confirmPassword: '',
   });
   const [errors, setErrors] = useState({});
+  
+  // Real-time email validation state
+  const [emailStatus, setEmailStatus] = useState({ checking: false, exists: null, isActive: null });
+  const [passwordStrength, setPasswordStrength] = useState({ valid: false, errors: [] });
+
+  // Debounced email check
+  useEffect(() => {
+    const checkEmail = async () => {
+      const email = formData.email.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setEmailStatus({ checking: false, exists: null, isActive: null });
+        return;
+      }
+
+      setEmailStatus({ checking: true, exists: null, isActive: null });
+      try {
+        const result = await checkEmailExists(email);
+        setEmailStatus({ checking: false, exists: result.exists, isActive: result.isActive });
+      } catch {
+        setEmailStatus({ checking: false, exists: null, isActive: null });
+      }
+    };
+
+    const timeoutId = setTimeout(checkEmail, 500);
+    return () => clearTimeout(timeoutId);
+  }, [formData.email]);
+
+  // Real-time password validation
+  useEffect(() => {
+    const password = formData.password;
+    if (!password) {
+      setPasswordStrength({ valid: false, errors: [] });
+      return;
+    }
+    const errors = [];
+    if (password.length < 8) errors.push('8+ chars');
+    if (!/[A-Z]/.test(password)) errors.push('uppercase');
+    if (!/[a-z]/.test(password)) errors.push('lowercase');
+    if (!/[0-9]/.test(password)) errors.push('number');
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('special char');
+    setPasswordStrength({ valid: errors.length === 0, errors });
+  }, [formData.password]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -50,6 +93,18 @@ const Login = ({ mode = 'login' }) => {
       if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
+      }
+      // Check if email already exists for registration
+      if (emailStatus.exists) {
+        newErrors.email = 'This email is already registered. Please login instead.';
+      }
+    } else {
+      // Check if email doesn't exist for login
+      if (emailStatus.exists === false) {
+        newErrors.email = 'No account found with this email. Please register.';
+      }
+      if (emailStatus.exists && emailStatus.isActive === false) {
+        newErrors.email = 'This account is disabled. Please contact support.';
       }
     }
 
@@ -192,14 +247,76 @@ const Login = ({ mode = 'login' }) => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 ${
-                    errors.email ? 'border-red-500' : 'border-slate-600'
+                  className={`w-full pl-10 pr-10 py-2.5 bg-slate-900/50 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 ${
+                    errors.email ? 'border-red-500' : 
+                    emailStatus.checking ? 'border-slate-600' :
+                    emailStatus.exists === null ? 'border-slate-600' :
+                    (isLogin ? (emailStatus.exists ? 'border-emerald-500' : 'border-red-500') : 
+                              (emailStatus.exists ? 'border-red-500' : 'border-emerald-500'))
                   }`}
                   placeholder="juan@email.com"
                 />
+                {/* Email status indicator */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {emailStatus.checking && (
+                    <span className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin block" />
+                  )}
+                  {!emailStatus.checking && emailStatus.exists !== null && formData.email && (
+                    isLogin ? (
+                      emailStatus.exists ? (
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-400" />
+                      )
+                    ) : (
+                      emailStatus.exists ? (
+                        <XCircle className="w-4 h-4 text-red-400" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      )
+                    )
+                  )}
+                </div>
               </div>
               {errors.email && (
-                <p className="mt-1 text-xs text-red-400">{errors.email}</p>
+                <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.email}
+                </p>
+              )}
+              {/* Real-time email status messages */}
+              {!errors.email && !emailStatus.checking && emailStatus.exists !== null && formData.email && (
+                <p className={`mt-1 text-xs flex items-center gap-1 ${
+                  isLogin 
+                    ? (emailStatus.exists ? 'text-emerald-400' : 'text-amber-400')
+                    : (emailStatus.exists ? 'text-amber-400' : 'text-emerald-400')
+                }`}>
+                  {isLogin ? (
+                    emailStatus.exists ? (
+                      <>
+                        <CheckCircle className="w-3 h-3" />
+                        Account found
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-3 h-3" />
+                        No account with this email. <button type="button" onClick={() => setIsLogin(false)} className="underline hover:text-amber-300">Register instead?</button>
+                      </>
+                    )
+                  ) : (
+                    emailStatus.exists ? (
+                      <>
+                        <AlertCircle className="w-3 h-3" />
+                        Email already registered. <button type="button" onClick={() => setIsLogin(true)} className="underline hover:text-amber-300">Login instead?</button>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-3 h-3" />
+                        Email available
+                      </>
+                    )
+                  )}
+                </p>
               )}
             </div>
 
@@ -216,7 +333,9 @@ const Login = ({ mode = 'login' }) => {
                   value={formData.password}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-12 py-2.5 bg-slate-900/50 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 ${
-                    errors.password ? 'border-red-500' : 'border-slate-600'
+                    errors.password ? 'border-red-500' : 
+                    (!isLogin && formData.password) ? (passwordStrength.valid ? 'border-emerald-500' : 'border-amber-500') : 
+                    'border-slate-600'
                   }`}
                   placeholder="••••••••"
                 />
@@ -229,9 +348,49 @@ const Login = ({ mode = 'login' }) => {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-xs text-red-400">{errors.password}</p>
+                <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.password}
+                </p>
               )}
-              {!isLogin && !errors.password && (
+              {/* Password strength indicator for registration */}
+              {!isLogin && formData.password && !errors.password && (
+                <div className="mt-2">
+                  {/* Strength bar */}
+                  <div className="flex gap-1 mb-1">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full ${
+                          i <= (5 - passwordStrength.errors.length)
+                            ? passwordStrength.valid
+                              ? 'bg-emerald-500'
+                              : passwordStrength.errors.length <= 2
+                              ? 'bg-amber-500'
+                              : 'bg-red-500'
+                            : 'bg-slate-700'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className={`text-xs flex items-center gap-1 ${
+                    passwordStrength.valid ? 'text-emerald-400' : 'text-amber-400'
+                  }`}>
+                    {passwordStrength.valid ? (
+                      <>
+                        <CheckCircle className="w-3 h-3" />
+                        Strong password
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-3 h-3" />
+                        Missing: {passwordStrength.errors.join(', ')}
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
+              {!isLogin && !formData.password && (
                 <p className="mt-1 text-xs text-slate-500">
                   Min 8 chars, uppercase, lowercase, number & special character
                 </p>
