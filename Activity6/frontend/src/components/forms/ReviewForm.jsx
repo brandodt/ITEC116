@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { Star } from "react-feather";
 
 const ReviewForm = ({ onCancel, onSubmit }) => {
   const [reviewerName, setReviewerName] = useState("");
   const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -37,50 +39,67 @@ const ReviewForm = ({ onCancel, onSubmit }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <div className="text-red-400 text-sm">{error}</div>}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {error && (
+        <div className="p-3 rounded-lg bg-red-900/30 border border-red-600/50">
+          <p className="text-sm text-red-400">{error}</p>
+        </div>
+      )}
 
       <div>
-        <label className="block text-sm mb-1">Your Name</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Your Name</label>
         <input
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] text-gray-200 px-4 py-3 rounded-lg border border-gray-800 focus:outline-none focus:border-blue-500 transition-all"
           value={reviewerName}
           onChange={(e) => setReviewerName(e.target.value)}
-          placeholder="John Doe"
+          placeholder="Enter your name"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Rating</label>
-        <select
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
-          value={rating}
-          onChange={(e) => setRating(e.target.value)}
-        >
-          {[1, 2, 3, 4, 5].map((v) => (
-            <option key={v} value={v}>
-              {v} Star{v > 1 ? "s" : ""}
-            </option>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Rating</label>
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              className="p-1 transition-transform hover:scale-110"
+              onMouseEnter={() => setHoverRating(star)}
+              onMouseLeave={() => setHoverRating(0)}
+              onClick={() => setRating(star)}
+            >
+              <Star
+                size={28}
+                className={`transition-colors ${
+                  star <= (hoverRating || rating)
+                    ? "text-yellow-500 fill-yellow-500"
+                    : "text-gray-600"
+                }`}
+              />
+            </button>
           ))}
-        </select>
+          <span className="ml-3 text-gray-400 text-sm">
+            {rating} Star{rating > 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Comment (optional)</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Comment (optional)</label>
         <textarea
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
-          rows={3}
+          className="w-full bg-[#0a0a0a] text-gray-200 px-4 py-3 rounded-lg border border-gray-800 focus:outline-none focus:border-blue-500 transition-all resize-none"
+          rows={4}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="What did you think about the movie?"
         />
       </div>
 
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex gap-3 pt-4">
         <button
           type="button"
-          className="px-4 py-2 rounded bg-[#242424] text-gray-200 hover:bg-[#2c2c2c]"
+          className="flex-1 px-4 py-3 rounded-lg bg-gray-800 text-gray-200 hover:bg-gray-700 transition-colors font-medium"
           onClick={onCancel}
           disabled={submitting}
         >
@@ -88,10 +107,10 @@ const ReviewForm = ({ onCancel, onSubmit }) => {
         </button>
         <button
           type="submit"
-          className="px-4 py-2 rounded bg-[#00a2ff] text-white hover:bg-blue-600 disabled:opacity-60"
+          className="flex-1 px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors font-medium"
           disabled={submitting}
         >
-          {submitting ? "Saving..." : "Save"}
+          {submitting ? "Submitting..." : "Submit Review"}
         </button>
       </div>
     </form>

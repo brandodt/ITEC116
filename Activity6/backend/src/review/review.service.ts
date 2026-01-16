@@ -49,10 +49,11 @@ export class ReviewService {
     return review;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string): Promise<{ deleted: boolean }> {
     const review = await this.reviewModel.findByIdAndDelete(id).exec();
     if (!review) throw new NotFoundException('Review not found');
     await this.recalculateMovieRating(review.movie.toString());
+    return { deleted: true };
   }
 
   private async recalculateMovieRating(movieId: string) {

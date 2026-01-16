@@ -48,9 +48,14 @@ export async function updateMovie(id, payload) {
 }
 
 export async function deleteMovie(id) {
-    return fetchJson(`${BASE_URL}/movies/${id}`, {
+    const res = await fetch(`${BASE_URL}/movies/${id}`, {
         method: "DELETE",
     });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+    }
+    return { success: true };
 }
 
 export async function getReviews(movieId) {
@@ -74,7 +79,12 @@ export async function createReview(movieId, payload) {
 }
 
 export async function deleteReview(id) {
-    return fetchJson(`${BASE_URL}/reviews/${id}`, {
+    const res = await fetch(`${BASE_URL}/reviews/${id}`, {
         method: "DELETE",
     });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+    }
+    return { success: true };
 }

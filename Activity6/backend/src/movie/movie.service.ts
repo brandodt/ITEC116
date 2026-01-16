@@ -35,9 +35,10 @@ export class MovieService {
     return movie;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string): Promise<{ deleted: boolean }> {
     const result = await this.movieModel.findByIdAndDelete(id).exec();
     if (!result) throw new NotFoundException('Movie not found');
+    return { deleted: true };
   }
 
   async updateRating(movieId: string, averageRating: number, reviewCount: number) {

@@ -20,6 +20,9 @@ export class Movie {
   @Prop({ type: [String], default: [] })
   genres: string[];
 
+  @Prop()
+  coverUrl?: string;
+
   @Prop({ default: 0 })
   averageRating: number;
 

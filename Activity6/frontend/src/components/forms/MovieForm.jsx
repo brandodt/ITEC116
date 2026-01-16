@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 
+const currentYear = new Date().getFullYear();
+// Generate years from current year down to 1888 (first movie ever made)
+const yearOptions = Array.from({ length: currentYear - 1887 }, (_, i) => currentYear - i);
+
 const MovieForm = ({ initialMovie = null, onCancel, onSubmit }) => {
   const [title, setTitle] = useState(initialMovie?.title || "");
   const [description, setDescription] = useState(
@@ -26,12 +30,6 @@ const MovieForm = ({ initialMovie = null, onCancel, onSubmit }) => {
     }
   }, [initialMovie]);
 
-  const handleYearChange = (e) => {
-    const value = e.target.value || "";
-    const digitsOnly = value.replace(/\D/g, "");
-    setReleaseYear(digitsOnly);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -42,6 +40,12 @@ const MovieForm = ({ initialMovie = null, onCancel, onSubmit }) => {
     }
 
     const yearNum = releaseYear ? Number(releaseYear) : undefined;
+
+    // Validate year is not in the future
+    if (yearNum && yearNum > currentYear) {
+      setError("Release year cannot be in the future.");
+      return;
+    }
 
     const payload = {
       title: title.trim(),
@@ -92,24 +96,28 @@ const MovieForm = ({ initialMovie = null, onCancel, onSubmit }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <div className="text-red-400 text-sm">{error}</div>}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {error && (
+        <div className="p-3 rounded-lg bg-red-900/30 border border-red-600/50">
+          <p className="text-sm text-red-400">{error}</p>
+        </div>
+      )}
 
       <div>
-        <label className="block text-sm mb-1">Title</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Title</label>
         <input
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] text-gray-200 px-4 py-3 rounded-lg border border-gray-800 focus:outline-none focus:border-blue-500 transition-all"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Movie title"
+          placeholder="Enter movie title"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Director (optional)</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Director (optional)</label>
         <input
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] text-gray-200 px-4 py-3 rounded-lg border border-gray-800 focus:outline-none focus:border-blue-500 transition-all"
           value={director}
           onChange={(e) => setDirector(e.target.value)}
           placeholder="Director name"
@@ -117,21 +125,25 @@ const MovieForm = ({ initialMovie = null, onCancel, onSubmit }) => {
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Release Year (optional)</label>
-        <input
-          type="text"
-          inputMode="numeric"
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+        <label className="block text-sm font-medium text-gray-300 mb-2">Release Year (optional)</label>
+        <select
+          className="w-full bg-[#0a0a0a] text-gray-200 px-4 py-3 rounded-lg border border-gray-800 focus:outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer"
           value={releaseYear}
-          onChange={handleYearChange}
-          placeholder="e.g. 2024"
-        />
+          onChange={(e) => setReleaseYear(e.target.value)}
+        >
+          <option value="">Select year</option>
+          {yearOptions.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Genres (optional)</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Genres (optional)</label>
         <input
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] text-gray-200 px-4 py-3 rounded-lg border border-gray-800 focus:outline-none focus:border-blue-500 transition-all"
           value={genres}
           onChange={(e) => setGenres(e.target.value)}
           placeholder="Comma-separated, e.g. Action, Drama"
@@ -139,10 +151,10 @@ const MovieForm = ({ initialMovie = null, onCancel, onSubmit }) => {
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Description (optional)</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Description (optional)</label>
         <textarea
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
-          rows={3}
+          className="w-full bg-[#0a0a0a] text-gray-200 px-4 py-3 rounded-lg border border-gray-800 focus:outline-none focus:border-blue-500 transition-all resize-none"
+          rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Short plot summary"
@@ -150,18 +162,18 @@ const MovieForm = ({ initialMovie = null, onCancel, onSubmit }) => {
       </div>
 
       <div>
-        <label className="block text-sm mb-2">Movie Cover (optional)</label>
-        <div className="flex items-center gap-2">
+        <label className="block text-sm font-medium text-gray-300 mb-2">Movie Cover (optional)</label>
+        <div className="flex items-center gap-3">
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            className="block w-full text-sm text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-[#00a2ff] file:text-white hover:file:bg-blue-600"
+            className="flex-1 text-sm text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer file:transition-colors"
             onChange={onCoverChange}
           />
           <button
             type="button"
-            className="px-3 py-2 rounded bg-[#242424] text-gray-200 hover:bg-[#2c2c2c] disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50 transition-colors"
             onClick={clearCover}
             disabled={!coverPreview}
           >
@@ -173,16 +185,16 @@ const MovieForm = ({ initialMovie = null, onCancel, onSubmit }) => {
             <img
               src={coverPreview}
               alt="Movie cover preview"
-              className="w-full h-48 object-cover rounded border border-dark-border"
+              className="w-full h-48 object-cover rounded-lg border border-gray-800"
             />
           </div>
         )}
       </div>
 
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex gap-3 pt-4">
         <button
           type="button"
-          className="px-4 py-2 rounded bg-[#242424] text-gray-200 hover:bg-[#2c2c2c]"
+          className="flex-1 px-4 py-3 rounded-lg bg-gray-800 text-gray-200 hover:bg-gray-700 transition-colors font-medium"
           onClick={onCancel}
           disabled={submitting}
         >
@@ -190,10 +202,10 @@ const MovieForm = ({ initialMovie = null, onCancel, onSubmit }) => {
         </button>
         <button
           type="submit"
-          className="px-4 py-2 rounded bg-[#00a2ff] text-white hover:bg-blue-600 disabled:opacity-60"
+          className="flex-1 px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors font-medium"
           disabled={submitting}
         >
-          {submitting ? "Saving..." : initialMovie ? "Save Changes" : "Save"}
+          {submitting ? "Saving..." : initialMovie ? "Save Changes" : "Add Movie"}
         </button>
       </div>
     </form>
