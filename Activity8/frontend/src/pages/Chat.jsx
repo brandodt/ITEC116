@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Send, ArrowLeft, User, Clock } from 'react-feather'
+import { Send, ArrowLeft, User, Clock, MessageSquare } from 'react-feather'
 import Badge from '../components/Badge.jsx'
 
 export default function Chat({

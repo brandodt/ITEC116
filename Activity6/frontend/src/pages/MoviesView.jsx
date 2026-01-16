@@ -210,18 +210,18 @@ const MoviesView = () => {
           {/* Main Content */}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-3xl font-bold text-gray-200">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-100 to-gray-300 bg-clip-text text-transparent">
                 Movies
                 <span className="text-gray-500 text-xl ml-2">({sortedMovies.length})</span>
               </h2>
               <button
-                className="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center gap-2 font-semibold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
                 onClick={() => {
                   setEditingMovie(null);
                   setIsMovieDrawerOpen(true);
                 }}
               >
-                <PlusCircle size={18} />
+                <PlusCircle size={20} />
                 Add Movie
               </button>
             </div>
@@ -250,68 +250,87 @@ const MoviesView = () => {
                   return (
                     <div
                       key={id}
-                      className={`bg-[#151515] rounded-xl overflow-hidden cursor-pointer transition-all group border ${
+                      className={`bg-gradient-to-br from-[#151515] to-[#0f0f0f] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 group border ${
                         isSelected
-                          ? "border-blue-500 ring-1 ring-blue-500/30"
-                          : "border-gray-800 hover:border-blue-500/50"
+                          ? "border-blue-500 ring-2 ring-blue-500/30 shadow-xl shadow-blue-500/20 scale-[1.02]"
+                          : "border-gray-800 hover:border-blue-500/50 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/10"
                       }`}
                       onClick={() => setSelectedMovie(movie)}
+                      style={{ animation: 'fadeIn 0.3s ease-out' }}
                     >
                       {/* Movie Cover */}
-                      <div className="aspect-[3/4] bg-[#1a1a1a] overflow-hidden relative">
+                      <div className="aspect-[3/4] bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] overflow-hidden relative">
                         {movie.coverUrl ? (
                           <img
                             src={movie.coverUrl}
                             alt={movie.title || "Movie cover"}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Film className="text-gray-700" size={40} />
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-950">
+                            <Film className="text-gray-700 group-hover:text-gray-600 transition-colors" size={48} />
                           </div>
                         )}
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         {/* Hover Actions */}
-                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleEditMovie(movie);
                             }}
-                            className="p-2 bg-blue-600/90 hover:bg-blue-700 rounded-lg transition-colors"
+                            className="p-2.5 bg-blue-600/95 hover:bg-blue-700 rounded-lg transition-all duration-200 backdrop-blur-sm shadow-lg hover:scale-110"
                             title="Edit movie"
                           >
-                            <Edit2 size={14} className="text-white" />
+                            <Edit2 size={16} className="text-white" />
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteMovie(movie);
                             }}
-                            className="p-2 bg-red-600/90 hover:bg-red-700 rounded-lg transition-colors"
+                            className="p-2.5 bg-red-600/95 hover:bg-red-700 rounded-lg transition-all duration-200 backdrop-blur-sm shadow-lg hover:scale-110"
                             title="Delete movie"
                           >
-                            <Trash2 size={14} className="text-white" />
+                            <Trash2 size={16} className="text-white" />
                           </button>
+                        </div>
+                        {/* Rating Badge */}
+                        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-3 py-1.5 bg-black/80 backdrop-blur-md rounded-lg border border-yellow-500/30">
+                          <Star size={14} className="text-yellow-500" fill="currentColor" />
+                          <span className="text-white font-bold text-sm">{avg.toFixed(1)}</span>
                         </div>
                       </div>
                       {/* Movie Info */}
-                      <div className="p-5">
-                        <h3 className="font-semibold text-gray-200 mb-2 line-clamp-2 text-lg">
+                      <div className="p-5 bg-gradient-to-b from-[#151515] to-[#121212]">
+                        <h3 className="font-bold text-gray-100 mb-2 line-clamp-2 text-lg group-hover:text-blue-400 transition-colors">
                           {movie.title || "Untitled"}
                         </h3>
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="text-gray-500">
+                        <div className="flex items-center justify-between text-sm mb-3">
+                          <span className="text-gray-400 font-medium">
                             {movie.releaseYear || "—"}
                           </span>
-                          <div className="flex items-center gap-1">
-                            <Star size={16} className="text-yellow-500" fill="currentColor" />
-                            <span className="text-gray-400 font-medium">{avg.toFixed(1)}</span>
-                          </div>
+                          <span className="text-gray-500 text-xs">
+                            {movie.reviewCount ?? 0} reviews
+                          </span>
                         </div>
                         {Array.isArray(movie.genres) && movie.genres.length > 0 && (
-                          <p className="text-sm text-gray-500 truncate">
-                            {movie.genres.join(", ")}
-                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {movie.genres.slice(0, 3).map((genre) => (
+                              <span
+                                key={genre}
+                                className="px-2 py-1 text-xs font-medium rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                              >
+                                {genre}
+                              </span>
+                            ))}
+                            {movie.genres.length > 3 && (
+                              <span className="px-2 py-1 text-xs font-medium rounded-md bg-gray-700/30 text-gray-500">
+                                +{movie.genres.length - 3}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
