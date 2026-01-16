@@ -43,7 +43,7 @@ export default function Users({ users, tasks, query, actions }) {
 
   const handleSubmit = (payload) => {
     if (editing) {
-      actions.updateUser(editing.id, payload)
+      actions.updateUser(editing._id, payload)
     } else {
       actions.createUser(payload)
     }
@@ -57,19 +57,19 @@ export default function Users({ users, tasks, query, actions }) {
       )
     )
       return
-    actions.deleteUser(u.id)
+    actions.deleteUser(u._id)
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold flex items-center gap-2 text-dark-text">
-          <UsersIcon className="text-[#00a2ff]" size={24} />
+          <UsersIcon className="text-blue-500" size={24} />
           Users ({filtered.length})
         </h2>
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-2 bg-[#00a2ff] text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors"
         >
           <PlusCircle size={18} />
           Add User
@@ -84,7 +84,7 @@ export default function Users({ users, tasks, query, actions }) {
             !query && (
               <button
                 onClick={openCreate}
-                className="inline-flex items-center gap-2 bg-[#00a2ff] text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500"
               >
                 <PlusCircle size={16} />
                 New User
@@ -95,11 +95,11 @@ export default function Users({ users, tasks, query, actions }) {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((u) => {
-            const taskCount = taskCountByUser.get(u.id) || 0
+            const taskCount = taskCountByUser.get(u._id) || 0
             return (
               <div
-                key={u.id}
-                className="bg-dark-secondary border border-dark-border rounded-lg p-4 shadow-lg flex flex-col"
+                key={u._id}
+                className="bg-[#151515] border border-gray-800 rounded-lg p-4 shadow-lg flex flex-col"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -109,14 +109,14 @@ export default function Users({ users, tasks, query, actions }) {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => openEdit(u)}
-                      className="p-1 rounded hover:bg-dark-input text-gray-400 hover:text-gray-200"
+                      className="p-1 rounded hover:bg-[#0a0a0a] text-gray-400 hover:text-gray-200"
                       title="Edit"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
                       onClick={() => handleDelete(u)}
-                      className="p-1 rounded hover:bg-dark-input text-red-400 hover:text-red-300"
+                      className="p-1 rounded hover:bg-[#0a0a0a] text-red-400 hover:text-red-300"
                       title="Delete"
                     >
                       <Trash2 size={16} />

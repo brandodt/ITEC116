@@ -37,9 +37,9 @@ export default function UserForm({ initialUser = null, onCancel, onSubmit }) {
       {error && <div className="text-red-400 text-sm">{error}</div>}
 
       <div>
-        <label className="block text-sm mb-1">Name</label>
+        <label className="block text-sm mb-1 text-gray-300">Name</label>
         <input
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 transition-colors"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. John Doe"
@@ -48,10 +48,10 @@ export default function UserForm({ initialUser = null, onCancel, onSubmit }) {
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Email (optional)</label>
+        <label className="block text-sm mb-1 text-gray-300">Email (optional)</label>
         <input
           type="email"
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 transition-colors"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="john@example.com"
@@ -59,9 +59,9 @@ export default function UserForm({ initialUser = null, onCancel, onSubmit }) {
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Role (optional)</label>
+        <label className="block text-sm mb-1 text-gray-300">Role (optional)</label>
         <input
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 transition-colors"
           value={role}
           onChange={(e) => setRole(e.target.value)}
           placeholder="e.g. Developer, Manager, QA"
@@ -71,7 +71,7 @@ export default function UserForm({ initialUser = null, onCancel, onSubmit }) {
       <div className="flex justify-end gap-2 pt-2">
         <button
           type="button"
-          className="px-4 py-2 rounded bg-[#242424] text-gray-200 hover:bg-[#2c2c2c]"
+          className="px-4 py-2.5 rounded bg-gray-800 text-gray-200 hover:bg-gray-700 transition-colors font-medium"
           onClick={onCancel}
           disabled={submitting}
         >
@@ -79,7 +79,7 @@ export default function UserForm({ initialUser = null, onCancel, onSubmit }) {
         </button>
         <button
           type="submit"
-          className="px-4 py-2 rounded bg-[#00a2ff] text-white hover:bg-blue-600 disabled:opacity-60"
+          className="px-4 py-2.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors font-medium"
           disabled={submitting}
         >
           {submitting ? 'Saving...' : initialUser ? 'Save Changes' : 'Add User'}

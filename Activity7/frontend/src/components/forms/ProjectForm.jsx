@@ -35,9 +35,9 @@ export default function ProjectForm({ initialProject = null, onCancel, onSubmit 
       {error && <div className="text-red-400 text-sm">{error}</div>}
 
       <div>
-        <label className="block text-sm mb-1">Project Name</label>
+        <label className="block text-sm mb-1 text-gray-300">Project Name</label>
         <input
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 transition-colors"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Website Redesign"
@@ -46,9 +46,9 @@ export default function ProjectForm({ initialProject = null, onCancel, onSubmit 
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Description (optional)</label>
+        <label className="block text-sm mb-1 text-gray-300">Description (optional)</label>
         <textarea
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 transition-colors resize-none"
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -59,7 +59,7 @@ export default function ProjectForm({ initialProject = null, onCancel, onSubmit 
       <div className="flex justify-end gap-2 pt-2">
         <button
           type="button"
-          className="px-4 py-2 rounded bg-[#242424] text-gray-200 hover:bg-[#2c2c2c]"
+          className="px-4 py-2.5 rounded bg-gray-800 text-gray-200 hover:bg-gray-700 transition-colors font-medium"
           onClick={onCancel}
           disabled={submitting}
         >
@@ -67,7 +67,7 @@ export default function ProjectForm({ initialProject = null, onCancel, onSubmit 
         </button>
         <button
           type="submit"
-          className="px-4 py-2 rounded bg-[#00a2ff] text-white hover:bg-blue-600 disabled:opacity-60"
+          className="px-4 py-2.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors font-medium"
           disabled={submitting}
         >
           {submitting ? 'Saving...' : initialProject ? 'Save Changes' : 'Create Project'}

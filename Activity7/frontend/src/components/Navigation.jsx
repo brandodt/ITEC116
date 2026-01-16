@@ -1,4 +1,4 @@
-import { BarChart2, Clipboard, Layers, RefreshCw, Users } from 'react-feather'
+import { BarChart2, Clipboard, Layers, Users } from 'react-feather'
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
@@ -12,42 +12,29 @@ export default function Navigation({
   onTabChange,
   query,
   onQueryChange,
-  onResetDemo,
 }) {
   return (
-    <nav className="bg-dark-secondary py-4 px-6 shadow-lg">
+    <nav className="bg-[#121212] border-b border-gray-800 py-4 px-6 sticky top-0 z-40">
       <div className="container mx-auto flex flex-col gap-4">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#00a2ff] text-white font-bold">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white font-bold">
               A7
             </span>
             <div>
-              <h1 className="text-2xl font-bold text-[#00a2ff]">Task Management</h1>
-              <p className="text-xs text-gray-400">Static demo CRUD (backend later)</p>
+              <h1 className="text-2xl font-bold text-blue-500">Task Management</h1>
+              <p className="text-xs text-gray-500">Project & Task Management System</p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-            <div className="relative w-full md:w-[360px]">
-              <input
-                type="text"
-                placeholder="Search projects, users, tasks..."
-                value={query}
-                onChange={(e) => onQueryChange?.(e.target.value)}
-                className="bg-[#1e1e1e] text-dark-text w-full py-2 px-4 rounded-lg border border-[#2a2a2a] focus:outline-none focus:ring-2 focus:ring-[#00a2ff] focus:border-transparent"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={onResetDemo}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-dark-border px-4 py-2 text-sm text-gray-200 hover:bg-dark-card"
-              title="Reset demo data"
-            >
-              <RefreshCw size={16} />
-              Reset
-            </button>
+          <div className="relative w-full md:w-[360px]">
+            <input
+              type="text"
+              placeholder="Search projects, users, tasks..."
+              value={query}
+              onChange={(e) => onQueryChange?.(e.target.value)}
+              className="bg-[#0a0a0a] text-gray-200 w-full py-2.5 px-4 rounded-lg border border-gray-800 focus:outline-none focus:border-blue-500 transition-colors"
+            />
           </div>
         </div>
 
@@ -62,11 +49,11 @@ export default function Navigation({
                 onClick={() => onTabChange?.(t.id)}
                 className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors border ${
                   active
-                    ? 'bg-[#00a2ff] border-[#00a2ff] text-white'
-                    : 'bg-transparent border-dark-border text-white hover:bg-[#00a2ff]/80 hover:border-[#00a2ff]/80 hover:text-white'
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'bg-transparent border-gray-800 text-gray-300 hover:bg-blue-600/10 hover:border-blue-500 hover:text-blue-400'
                 }`}
               >
-                <Icon size={16} className={active ? 'text-white' : 'text-gray-300 group-hover:text-white'} />
+                <Icon size={16} className={active ? 'text-white' : 'text-gray-400'} />
                 {t.label}
               </button>
             )

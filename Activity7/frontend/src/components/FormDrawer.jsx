@@ -10,8 +10,8 @@ export default function FormDrawer({ isOpen, title, onClose, children }) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-[#1a1a1a] text-gray-100 shadow-2xl flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-dark-border">
+      <div className="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-[#151515] text-gray-100 shadow-2xl flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <h2 className="text-lg font-semibold text-dark-text">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-200">
             <X size={20} />

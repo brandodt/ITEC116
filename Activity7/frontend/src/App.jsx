@@ -6,8 +6,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import Projects from './pages/Projects.jsx'
 import Tasks from './pages/Tasks.jsx'
 import Users from './pages/Users.jsx'
-import { createId } from './utils/ids.js'
-import { loadState, saveState } from './utils/storage.js'
+import * as Api from './data/Api.js'
 import {
   countDueSoon,
   countOverdue,
@@ -24,21 +23,43 @@ const TABS = /** @type {const} */ ({
 export default function App() {
   const [activeTab, setActiveTab] = useState(TABS.dashboard)
   const [query, setQuery] = useState('')
-  const [state, setState] = useState(() => loadState())
+  const [state, setState] = useState({ projects: [], users: [], tasks: [] })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
+  // Fetch all data on mount
   useEffect(() => {
-    saveState(state)
-  }, [state])
+    fetchAllData()
+  }, [])
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const [projects, users, tasks] = await Promise.all([
+        Api.getAllProjects(),
+        Api.getAllUsers(),
+        Api.getAllTasks(),
+      ])
+      setState({ projects, users, tasks })
+    } catch (err) {
+      console.error('Error fetching data:', err)
+      setError('Could not connect to the backend. Please make sure the server is running.')
+      toast.error('Failed to load data from server')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const projectsById = useMemo(() => {
     const map = new Map()
-    for (const p of state.projects) map.set(p.id, p)
+    for (const p of state.projects) map.set(p._id, p)
     return map
   }, [state.projects])
 
   const usersById = useMemo(() => {
     const map = new Map()
-    for (const u of state.users) map.set(u.id, u)
+    for (const u of state.users) map.set(u._id, u)
     return map
   }, [state.users])
 
@@ -53,116 +74,173 @@ export default function App() {
   }, [state.projects.length, state.users.length, state.tasks])
 
   const upcomingTasks = useMemo(() => {
-    const tasksWithDue = state.tasks.filter((t) => Boolean(t.dueDate))
+    const tasksWithDue = state.tasks.filter((t) => Boolean(t.dueDate) && t.status !== 'done')
     return sortTasksByDueDateAsc(tasksWithDue).slice(0, 8)
+  }, [state.tasks])
+
+  const completedTasks = useMemo(() => {
+    return state.tasks.filter((t) => t.status === 'done').slice(0, 8)
   }, [state.tasks])
 
   const actions = useMemo(() => {
     return {
       // Projects
-      createProject: (payload) => {
-        const next = {
-          id: createId('p'),
-          createdAt: new Date().toISOString(),
-          ...payload,
+      createProject: async (payload) => {
+        try {
+          const newProject = await Api.createProject(payload)
+          setState((prev) => ({ ...prev, projects: [newProject, ...prev.projects] }))
+          toast.success('Project created successfully!')
+        } catch (err) {
+          console.error('Error creating project:', err)
+          toast.error('Failed to create project')
         }
-        setState((prev) => ({ ...prev, projects: [next, ...prev.projects] }))
-        toast.success('Project created (local only).')
       },
-      updateProject: (projectId, payload) => {
-        setState((prev) => ({
-          ...prev,
-          projects: prev.projects.map((p) =>
-            p.id === projectId ? { ...p, ...payload } : p,
-          ),
-        }))
-        toast.success('Project updated (local only).')
+      updateProject: async (projectId, payload) => {
+        try {
+          const updated = await Api.updateProject(projectId, payload)
+          setState((prev) => ({
+            ...prev,
+            projects: prev.projects.map((p) =>
+              p._id === projectId ? updated : p,
+            ),
+          }))
+          toast.success('Project updated successfully!')
+        } catch (err) {
+          console.error('Error updating project:', err)
+          toast.error('Failed to update project')
+        }
       },
-      deleteProject: (projectId) => {
-        setState((prev) => ({
-          ...prev,
-          projects: prev.projects.filter((p) => p.id !== projectId),
-          tasks: prev.tasks.map((t) =>
-            t.projectId === projectId ? { ...t, projectId: '' } : t,
-          ),
-        }))
-        toast.success('Project deleted (local only).')
+      deleteProject: async (projectId) => {
+        try {
+          await Api.deleteProject(projectId)
+          setState((prev) => ({
+            ...prev,
+            projects: prev.projects.filter((p) => p._id !== projectId),
+          }))
+          toast.success('Project deleted successfully!')
+        } catch (err) {
+          console.error('Error deleting project:', err)
+          toast.error('Failed to delete project')
+        }
       },
 
       // Users
-      createUser: (payload) => {
-        const next = {
-          id: createId('u'),
-          createdAt: new Date().toISOString(),
-          ...payload,
+      createUser: async (payload) => {
+        try {
+          const newUser = await Api.createUser(payload)
+          setState((prev) => ({ ...prev, users: [newUser, ...prev.users] }))
+          toast.success('User created successfully!')
+        } catch (err) {
+          console.error('Error creating user:', err)
+          toast.error('Failed to create user')
         }
-        setState((prev) => ({ ...prev, users: [next, ...prev.users] }))
-        toast.success('User created (local only).')
       },
-      updateUser: (userId, payload) => {
-        setState((prev) => ({
-          ...prev,
-          users: prev.users.map((u) => (u.id === userId ? { ...u, ...payload } : u)),
-        }))
-        toast.success('User updated (local only).')
+      updateUser: async (userId, payload) => {
+        try {
+          const updated = await Api.updateUser(userId, payload)
+          setState((prev) => ({
+            ...prev,
+            users: prev.users.map((u) => (u._id === userId ? updated : u)),
+          }))
+          toast.success('User updated successfully!')
+        } catch (err) {
+          console.error('Error updating user:', err)
+          toast.error('Failed to update user')
+        }
       },
-      deleteUser: (userId) => {
-        setState((prev) => ({
-          ...prev,
-          users: prev.users.filter((u) => u.id !== userId),
-          tasks: prev.tasks.map((t) =>
-            t.assigneeUserId === userId ? { ...t, assigneeUserId: '' } : t,
-          ),
-        }))
-        toast.success('User deleted (local only).')
+      deleteUser: async (userId) => {
+        try {
+          await Api.deleteUser(userId)
+          setState((prev) => ({
+            ...prev,
+            users: prev.users.filter((u) => u._id !== userId),
+          }))
+          toast.success('User deleted successfully!')
+        } catch (err) {
+          console.error('Error deleting user:', err)
+          toast.error('Failed to delete user')
+        }
       },
 
       // Tasks
-      createTask: (payload) => {
-        const next = {
-          id: createId('t'),
-          createdAt: new Date().toISOString(),
-          status: 'todo',
-          ...payload,
+      createTask: async (payload) => {
+        try {
+          const newTask = await Api.createTask(payload)
+          setState((prev) => ({ ...prev, tasks: [newTask, ...prev.tasks] }))
+          toast.success('Task created successfully!')
+        } catch (err) {
+          console.error('Error creating task:', err)
+          toast.error('Failed to create task')
         }
-        setState((prev) => ({ ...prev, tasks: [next, ...prev.tasks] }))
-        toast.success('Task created (local only).')
       },
-      updateTask: (taskId, payload) => {
-        setState((prev) => ({
-          ...prev,
-          tasks: prev.tasks.map((t) => (t.id === taskId ? { ...t, ...payload } : t)),
-        }))
-        toast.success('Task updated (local only).')
+      updateTask: async (taskId, payload) => {
+        try {
+          const updated = await Api.updateTask(taskId, payload)
+          setState((prev) => ({
+            ...prev,
+            tasks: prev.tasks.map((t) => (t._id === taskId ? updated : t)),
+          }))
+          toast.success('Task updated successfully!')
+        } catch (err) {
+          console.error('Error updating task:', err)
+          toast.error('Failed to update task')
+        }
       },
-      deleteTask: (taskId) => {
-        setState((prev) => ({
-          ...prev,
-          tasks: prev.tasks.filter((t) => t.id !== taskId),
-        }))
-        toast.success('Task deleted (local only).')
+      deleteTask: async (taskId) => {
+        try {
+          await Api.deleteTask(taskId)
+          setState((prev) => ({
+            ...prev,
+            tasks: prev.tasks.filter((t) => t._id !== taskId),
+          }))
+          toast.success('Task deleted successfully!')
+        } catch (err) {
+          console.error('Error deleting task:', err)
+          toast.error('Failed to delete task')
+        }
       },
 
       resetDemoData: () => {
-        const next = loadState(true)
-        setState(next)
-        toast.info('Demo data reset.')
+        fetchAllData()
+        toast.info('Data refreshed from server')
       },
     }
   }, [])
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] text-gray-200 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full border-t-2 border-b-2 border-blue-500 animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading data from server...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-dark-primary text-dark-text flex flex-col">
+    <div className="min-h-screen bg-[#0a0a0a] text-gray-200 flex flex-col">
       <Navigation
         activeTab={activeTab}
         onTabChange={setActiveTab}
         query={query}
         onQueryChange={setQuery}
-        onResetDemo={() => {
-          if (!window.confirm('Reset demo data? This clears local changes.')) return
-          actions.resetDemoData()
-        }}
       />
+
+      {error && (
+        <div className="bg-red-900/30 border-l-4 border-red-600 p-4 mx-4 mt-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-9a1 1 0 112 0v4a1 1 0 11-2 0V9zm1-5a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-gray-200">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="container mx-auto w-full flex-1 px-4 py-6">
         {activeTab === TABS.dashboard && (
@@ -172,7 +250,7 @@ export default function App() {
             projectsById={projectsById}
             usersById={usersById}
             upcomingTasks={upcomingTasks}
-            onGoTo={(tab) => setActiveTab(tab)}
+            completedTasks={completedTasks}
           />
         )}
         {activeTab === TABS.projects && (

@@ -19,13 +19,13 @@ export default function Tasks({ tasks, projects, users, query, actions }) {
 
   const projectsById = useMemo(() => {
     const map = new Map()
-    for (const p of projects) map.set(p.id, p)
+    for (const p of projects) map.set(p._id, p)
     return map
   }, [projects])
 
   const usersById = useMemo(() => {
     const map = new Map()
-    for (const u of users) map.set(u.id, u)
+    for (const u of users) map.set(u._id, u)
     return map
   }, [users])
 
@@ -55,7 +55,7 @@ export default function Tasks({ tasks, projects, users, query, actions }) {
 
   const handleSubmit = (payload) => {
     if (editing) {
-      actions.updateTask(editing.id, payload)
+      actions.updateTask(editing._id, payload)
     } else {
       actions.createTask(payload)
     }
@@ -64,14 +64,14 @@ export default function Tasks({ tasks, projects, users, query, actions }) {
 
   const handleDelete = (t) => {
     if (!window.confirm(`Delete task "${t.title}"?`)) return
-    actions.deleteTask(t.id)
+    actions.deleteTask(t._id)
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-semibold flex items-center gap-2 text-dark-text">
-          <Clipboard className="text-[#00a2ff]" size={24} />
+          <Clipboard className="text-blue-500" size={24} />
           Tasks ({filtered.length})
         </h2>
 
@@ -79,7 +79,7 @@ export default function Tasks({ tasks, projects, users, query, actions }) {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+            className="bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2 text-gray-100 focus:outline-none focus:border-blue-500"
           >
             <option value="all">All Statuses</option>
             <option value="todo">To Do</option>
@@ -89,7 +89,7 @@ export default function Tasks({ tasks, projects, users, query, actions }) {
 
           <button
             onClick={openCreate}
-            className="inline-flex items-center gap-2 bg-[#00a2ff] text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors"
           >
             <PlusCircle size={18} />
             Add Task
@@ -110,7 +110,7 @@ export default function Tasks({ tasks, projects, users, query, actions }) {
             filterStatus === 'all' && (
               <button
                 onClick={openCreate}
-                className="inline-flex items-center gap-2 bg-[#00a2ff] text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500"
               >
                 <PlusCircle size={16} />
                 New Task
@@ -129,8 +129,8 @@ export default function Tasks({ tasks, projects, users, query, actions }) {
 
             return (
               <div
-                key={t.id}
-                className="bg-dark-secondary border border-dark-border rounded-lg p-4 shadow-lg flex flex-col sm:flex-row sm:items-center gap-4"
+                key={t._id}
+                className="bg-[#151515] border border-gray-800 rounded-lg p-4 shadow-lg flex flex-col sm:flex-row sm:items-center gap-4"
               >
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -151,14 +151,14 @@ export default function Tasks({ tasks, projects, users, query, actions }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => openEdit(t)}
-                    className="p-2 rounded hover:bg-dark-input text-gray-400 hover:text-gray-200"
+                    className="p-2 rounded hover:bg-[#0a0a0a] text-gray-400 hover:text-gray-200"
                     title="Edit"
                   >
                     <Edit2 size={18} />
                   </button>
                   <button
                     onClick={() => handleDelete(t)}
-                    className="p-2 rounded hover:bg-dark-input text-red-400 hover:text-red-300"
+                    className="p-2 rounded hover:bg-[#0a0a0a] text-red-400 hover:text-red-300"
                     title="Delete"
                   >
                     <Trash2 size={18} />

@@ -33,12 +33,14 @@ export default function TaskForm({
 
     const payload = {
       title: title.trim(),
-      description: description.trim() || undefined,
       status,
-      dueDate: dueDate || undefined,
-      projectId: projectId || undefined,
-      assigneeUserId: assigneeUserId || undefined,
     }
+
+    // Only add optional fields if they have values
+    if (description.trim()) payload.description = description.trim()
+    if (dueDate) payload.dueDate = dueDate
+    if (projectId) payload.projectId = projectId
+    if (assigneeUserId) payload.assigneeUserId = assigneeUserId
 
     try {
       setSubmitting(true)
@@ -51,13 +53,13 @@ export default function TaskForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <div className="text-red-400 text-sm">{error}</div>}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {error && <div className="text-red-400 text-base">{error}</div>}
 
       <div>
-        <label className="block text-sm mb-1">Task Title</label>
+        <label className="block text-base font-medium mb-2">Task Title</label>
         <input
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 text-base focus:outline-none focus:border-blue-500"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. Implement login page"
@@ -66,9 +68,9 @@ export default function TaskForm({
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Description (optional)</label>
+        <label className="block text-base font-medium mb-2">Description (optional)</label>
         <textarea
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 text-base focus:outline-none focus:border-blue-500"
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -78,9 +80,9 @@ export default function TaskForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm mb-1">Status</label>
+          <label className="block text-base font-medium mb-2">Status</label>
           <select
-            className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+            className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 text-base focus:outline-none focus:border-blue-500"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -93,26 +95,28 @@ export default function TaskForm({
         </div>
 
         <div>
-          <label className="block text-sm mb-1">Due Date</label>
+          <label className="block text-base font-medium mb-2">Due Date</label>
           <input
             type="date"
-            className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+            className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 text-base focus:outline-none focus:border-blue-500 cursor-pointer"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
+            max="2030-12-31"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Project</label>
+        <label className="block text-base font-medium mb-2">Project</label>
         <select
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 text-base focus:outline-none focus:border-blue-500"
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
         >
           <option value="">— None —</option>
           {projects.map((p) => (
-            <option key={p.id} value={p.id}>
+            <option key={p._id} value={p._id}>
               {p.name}
             </option>
           ))}
@@ -120,15 +124,15 @@ export default function TaskForm({
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Assignee</label>
+        <label className="block text-base font-medium mb-2">Assignee</label>
         <select
-          className="w-full bg-[#121212] border border-dark-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#00a2ff]"
+          className="w-full bg-[#0a0a0a] border border-gray-800 rounded px-3 py-2.5 text-gray-100 text-base focus:outline-none focus:border-blue-500"
           value={assigneeUserId}
           onChange={(e) => setAssigneeUserId(e.target.value)}
         >
           <option value="">— Unassigned —</option>
           {users.map((u) => (
-            <option key={u.id} value={u.id}>
+            <option key={u._id} value={u._id}>
               {u.name}
             </option>
           ))}
@@ -138,7 +142,7 @@ export default function TaskForm({
       <div className="flex justify-end gap-2 pt-2">
         <button
           type="button"
-          className="px-4 py-2 rounded bg-[#242424] text-gray-200 hover:bg-[#2c2c2c]"
+          className="px-4 py-2 rounded bg-[#151515] text-gray-200 hover:bg-[#1f1f1f] border border-gray-800"
           onClick={onCancel}
           disabled={submitting}
         >
@@ -146,7 +150,7 @@ export default function TaskForm({
         </button>
         <button
           type="submit"
-          className="px-4 py-2 rounded bg-[#00a2ff] text-white hover:bg-blue-600 disabled:opacity-60"
+          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-60"
           disabled={submitting}
         >
           {submitting ? 'Saving...' : initialTask ? 'Save Changes' : 'Create Task'}
